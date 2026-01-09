@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Yahtzee Elite 3D Pro | Beta Build</title>
-    
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
 
@@ -38,9 +38,9 @@
             --tray-bg: #000000;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { 
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+        body {
             font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg);
             color: var(--text);
@@ -70,11 +70,13 @@
             justify-content: space-between;
             align-items: center;
             padding-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
 
         .logo { font-weight: 800; font-size: 1.6rem; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
 
-        .toolbar { display: flex; gap: 12px; }
+        .toolbar { display: flex; gap: 12px; flex-wrap: wrap; }
         .btn {
             padding: 12px 20px;
             border-radius: 14px;
@@ -88,6 +90,7 @@
             align-items: center;
             gap: 8px;
             font-size: 0.9rem;
+            touch-action: manipulation;
         }
         .btn:hover { background: var(--surface-2); transform: translateY(-1px); border-color: var(--text-muted); }
         .btn-primary { background: var(--primary); color: white; border: none; }
@@ -108,7 +111,11 @@
             border: 1px solid rgba(255,255,255,0.1);
         }
 
-        #canvas-3d { width: 100%; height: 100%; }
+        #canvas-3d {
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* Prevents scrolling while rolling on mobile */
+        }
 
         .dice-controls {
             background: var(--surface);
@@ -122,7 +129,7 @@
             gap: 20px;
         }
 
-        .rack { display: flex; gap: 16px; }
+        .rack { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
         .die-slot {
             width: 75px;
             height: 95px;
@@ -135,6 +142,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            touch-action: manipulation;
         }
         .die-slot.held {
             background: var(--primary);
@@ -161,7 +169,7 @@
         .score-scroll { overflow-x: auto; margin: 0 -10px; padding: 10px; }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        
+
         .active-turn-col { background: var(--primary-light) !important; }
 
         th, td { padding: 14px 10px; border-bottom: 1px solid var(--border); }
@@ -176,7 +184,7 @@
             font-family: inherit;
             font-weight: 800;
             color: var(--text);
-            font-size: 0.95rem;
+            font-size: 1rem; /* 16px to prevent iOS zoom */
             outline: none;
             padding: 4px;
             border-radius: 6px;
@@ -228,7 +236,16 @@
         }
 
         @media (max-width: 1024px) {
-            .app-shell { grid-template-columns: 1fr; }
+            .app-shell { grid-template-columns: 1fr; padding: 16px; }
+            .die-slot { width: 60px; height: 80px; }
+            .die-slot .val { font-size: 1.5rem; }
+        }
+
+        @media (max-width: 600px) {
+             .logo { font-size: 1.3rem; }
+             .toolbar { gap: 8px; }
+             .btn { padding: 10px 14px; font-size: 0.8rem; }
+             .die-slot { width: 50px; height: 70px; }
         }
     </style>
 </head>
@@ -255,11 +272,11 @@
                 <span id="rollStatus" style="font-weight: 800; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Roll 0 / 3</span>
                 <button class="btn" onclick="game.clearTray()">🔄 Clear Tray</button>
             </div>
-            
+
             <div class="rack" id="diceRack">
                 </div>
 
-            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()" style="padding: 18px 80px; font-size: 1.2rem; letter-spacing: 1px;">
+            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()" style="padding: 18px 80px; font-size: 1.2rem; letter-spacing: 1px; width: 100%; max-width: 400px;">
                 ROLL DICE
             </button>
         </div>
@@ -296,29 +313,34 @@
 
 <script>
     /**
-     * 3D PHYSICS ENGINE - TIGHT BOUNDARIES
+     * 3D PHYSICS ENGINE - OPTIMIZED & DYNAMIC BOUNDARIES
      */
     class DiceEngine {
         constructor(containerId, onSettle) {
             this.container = document.getElementById(containerId);
             this.onSettle = onSettle;
             this.dice = [];
+            this.walls = {};
             this.isRolling = false;
-            
+
             this.initScene();
             this.initPhysics();
             this.createDice();
             this.animate();
-            
+
+            // Initial boundary setup
+            this.updateBoundaries();
+
             window.addEventListener('resize', () => this.resize());
         }
 
         initScene() {
             this.scene = new THREE.Scene();
-            this.scene.background = null; 
+            this.scene.background = null;
 
+            // Camera setup
             this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-            this.camera.position.set(0, 18, 0); 
+            this.camera.position.set(0, 18, 0);
             this.camera.lookAt(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -328,6 +350,7 @@
             this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             this.container.appendChild(this.renderer.domElement);
 
+            // Lighting
             this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
             const sun = new THREE.DirectionalLight(0xffffff, 0.6);
             sun.position.set(10, 20, 10);
@@ -336,6 +359,7 @@
             sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15;
             this.scene.add(sun);
 
+            // Floor
             const floor = new THREE.Mesh(
                 new THREE.PlaneGeometry(100, 100),
                 new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
@@ -347,26 +371,63 @@
 
         initPhysics() {
             this.world = new CANNON.World();
-            this.world.gravity.set(0, -50, 0);
-            
+            // Reduced gravity to make dice float a bit more
+            this.world.gravity.set(0, -25, 0);
+
+            // Floor body
             const ground = new CANNON.Body({ mass: 0 });
             ground.addShape(new CANNON.Plane());
             ground.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
             this.world.addBody(ground);
 
-            // BOUNDARY ENFORCEMENT: Walls positioned exactly at camera view edges
+            // Create wall bodies (initially at 0, updated by updateBoundaries)
             const wallMat = new CANNON.Material();
-            this.createWall(0, 7.8, 30, 1, wallMat);  // Top
-            this.createWall(0, -7.8, 30, 1, wallMat); // Bottom
-            this.createWall(11.5, 0, 1, 30, wallMat);  // Right
-            this.createWall(-11.5, 0, 1, 30, wallMat); // Left
+            this.walls.top = this.createWallBody(wallMat);
+            this.walls.bottom = this.createWallBody(wallMat);
+            this.walls.left = this.createWallBody(wallMat);
+            this.walls.right = this.createWallBody(wallMat);
         }
 
-        createWall(x, z, w, d, mat) {
+        createWallBody(mat) {
             const body = new CANNON.Body({ mass: 0, material: mat });
-            body.addShape(new CANNON.Box(new CANNON.Vec3(w/2, 20, d/2))); // High walls to prevent jumping
-            body.position.set(x, 10, z);
             this.world.addBody(body);
+            return body;
+        }
+
+        updateBoundaries() {
+            if (!this.container.clientHeight) return;
+
+            // Calculate visible area at y=0 based on camera properties
+            const dist = this.camera.position.y;
+            const vFOV = THREE.Math.degToRad(this.camera.fov);
+            const visibleHeight = 2 * Math.tan(vFOV / 2) * dist;
+            const visibleWidth = visibleHeight * (this.container.clientWidth / this.container.clientHeight);
+
+            const w = visibleWidth / 2;
+            const h = visibleHeight / 2;
+
+            // Wall thickness
+            const t = 1;
+
+            // Update Top Wall
+            this.walls.top.shapes = [];
+            this.walls.top.addShape(new CANNON.Box(new CANNON.Vec3(visibleWidth, 20, t)));
+            this.walls.top.position.set(0, 10, -h - t);
+
+            // Update Bottom Wall
+            this.walls.bottom.shapes = [];
+            this.walls.bottom.addShape(new CANNON.Box(new CANNON.Vec3(visibleWidth, 20, t)));
+            this.walls.bottom.position.set(0, 10, h + t);
+
+            // Update Left Wall
+            this.walls.left.shapes = [];
+            this.walls.left.addShape(new CANNON.Box(new CANNON.Vec3(t, 20, visibleHeight)));
+            this.walls.left.position.set(-w - t, 10, 0);
+
+            // Update Right Wall
+            this.walls.right.shapes = [];
+            this.walls.right.addShape(new CANNON.Box(new CANNON.Vec3(t, 20, visibleHeight)));
+            this.walls.right.position.set(w + t, 10, 0);
         }
 
         createDice() {
@@ -376,15 +437,15 @@
             for(let i=0; i<5; i++) {
                 const mesh = new THREE.Mesh(geo, mats);
                 mesh.castShadow = true;
-                
-                const body = new CANNON.Body({ 
-                    mass: 1.2, 
+
+                const body = new CANNON.Body({
+                    mass: 1.2,
                     shape: new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)),
-                    linearDamping: 0.2,
-                    angularDamping: 0.2
+                    linearDamping: 0.01,  // Very low damping so they slide
+                    angularDamping: 0.01   // Very low damping so they spin
                 });
                 body.position.set((i-2)*1.8, 1.5, 0);
-                
+
                 this.dice.push({ mesh, body });
                 this.scene.add(mesh);
                 this.world.addBody(body);
@@ -415,8 +476,13 @@
             this.isRolling = true;
             this.dice.forEach((d, i) => {
                 if (heldIndices.includes(i)) return;
-                d.body.position.set(Math.random()*2-1, 10 + i, Math.random()*2-1);
-                d.body.velocity.set(Math.random()*20-10, -5, Math.random()*20-10);
+
+                // Random starting position slightly above
+                d.body.position.set(Math.random()*2-1, 8 + i, Math.random()*2-1);
+
+                // Add some upward velocity (y: 5) to give them an arc, plus random spread
+                d.body.velocity.set(Math.random()*15-7.5, 5, Math.random()*15-7.5);
+
                 d.body.angularVelocity.set(Math.random()*30, Math.random()*30, Math.random()*30);
                 d.body.allowSleep = true;
             });
@@ -454,7 +520,7 @@
             this.dice.forEach(d => {
                 d.mesh.position.copy(d.body.position);
                 d.mesh.quaternion.copy(d.body.quaternion);
-                if (d.body.velocity.length() > 0.15) moving = true;
+                if (d.body.velocity.length() > 0.1) moving = true;
             });
             if (this.isRolling && !moving) {
                 this.isRolling = false;
@@ -464,9 +530,11 @@
         }
 
         resize() {
+            if (!this.container.clientWidth) return;
             this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            this.updateBoundaries();
         }
     }
 
@@ -500,7 +568,7 @@
             this.held = [];
             this.values = [1, 1, 1, 1, 1];
             this.history = [];
-            
+
             this.engine = new DiceEngine('canvas-3d', (v) => this.onDiceSettle(v));
             this.initUI();
             this.render();
@@ -567,6 +635,23 @@
         }
 
         score(pIdx, catId) {
+            // MANUAL SCORE ENTRY MODE
+            if (document.body.classList.contains('scorecard-focused')) {
+                const current = this.players[pIdx].scores[catId];
+                const rule = RULES.find(r => r.id === catId);
+                const input = prompt(`Enter score for ${rule.name}:`, current !== undefined ? current : '');
+
+                if (input === null) return; // Cancelled
+
+                const val = parseInt(input);
+                if (!isNaN(val)) {
+                     this.players[pIdx].scores[catId] = val;
+                     this.render();
+                }
+                return;
+            }
+
+            // STANDARD GAMEPLAY MODE
             if (pIdx !== this.turnIdx || this.rolls === 0 || this.players[pIdx].scores[catId] !== undefined) return;
             this.history.push(JSON.stringify({ players: this.players, turn: this.turnIdx }));
             document.getElementById('undoBtn').disabled = false;
@@ -615,10 +700,10 @@
         render() {
             const pHeader = document.getElementById('playerHeaderRow');
             pHeader.innerHTML = '<th>Category</th>' + this.players.map((p, i) => `
-                <th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}" 
+                <th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}"
                     draggable="true" ondragstart="game.drag(${i})" ondragover="event.preventDefault()" ondrop="game.drop(${i})">
                     <span class="remove-player" onclick="game.removePlayer(${i})">✕</span>
-                    <input class="player-name-input" value="${p.name}" onchange="game.renamePlayer(${i}, this.value)">
+                    <input class="player-name-input" value="${p.name}" onchange="game.renamePlayer(${i}, this.value)" onclick="this.select()">
                 </th>`).join('');
 
             const body = document.getElementById('scoreTableBody');
@@ -635,7 +720,7 @@
                     } else {
                         const isHint = pi === this.turnIdx && this.rolls > 0 && val === undefined;
                         const display = val !== undefined ? val : (isHint ? this.calcValue(rule.id, this.values) : '');
-                        html += `<td class="score-cell ${val !== undefined ? 'locked' : ''} ${isHint ? 'hint' : ''} ${pi === this.turnIdx ? 'active-turn-col' : ''}" 
+                        html += `<td class="score-cell ${val !== undefined ? 'locked' : ''} ${isHint ? 'hint' : ''} ${pi === this.turnIdx ? 'active-turn-col' : ''}"
                                      onclick="game.score(${pi}, '${rule.id}')">${display}</td>`;
                     }
                 });
@@ -670,7 +755,11 @@
         toggleFocusMode() {
             document.body.classList.toggle('scorecard-focused');
             document.getElementById('focusBtn').textContent = document.body.classList.contains('scorecard-focused') ? '🎮 Game Mode' : '📋 Scorecard Only';
-            window.dispatchEvent(new Event('resize'));
+
+            // Wait for transition to end before resizing canvas
+            setTimeout(() => {
+                this.engine.resize();
+            }, 550); // slightly longer than CSS transition 0.5s
         }
 
         toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
