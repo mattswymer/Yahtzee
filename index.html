@@ -3,499 +3,404 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Yahtzee Scoreboard & Game</title>
+    <title>Yahtzee Elite - Physics Edition</title>
     <style>
         :root {
-            /* Light Mode Colors */
-            --bg-color: #f4f7f6;
-            --card-bg: #ffffff;
-            --text-color: #2d3436;
-            --border-color: #dfe6e9;
-            --primary: #0984e3;
-            --secondary: #6c5ce7;
-            --accent: #00b894;
-            --danger: #d63031;
-            --dice-bg: #ffffff;
-            --dice-dot: #2d3436;
+            --bg: #f4f7f9;
+            --surface: #ffffff;
+            --text: #2c3e50;
+            --primary: #007bff;
+            --border: #d1d8e0;
+            --shaded: #f8f9fa;
+            --tray-bg: #3c8dab; /* Octagon Tray Color */
+            /* Player Backgrounds */
+            --c1: #e3f2fd; --c2: #fff9db; --c3: #f3e5f5; --c4: #e8f5e9;
+            --c5: #fff3e0; --c6: #fce4ec; --c7: #f1f2f6; --c8: #ffffff;
         }
 
         [data-theme="dark"] {
-            --bg-color: #1e272e;
-            --card-bg: #2f3542;
-            --text-color: #f1f2f6;
-            --border-color: #57606f;
-            --dice-bg: #f1f2f6;
-            --dice-dot: #2f3542;
+            --bg: #1a1a1a; --surface: #2d2d2d; --text: #ecf0f1;
+            --border: #444; --shaded: #333; --tray-bg: #1e3a45;
         }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        * { box-sizing: border-box; font-family: 'Inter', system-ui, sans-serif; }
+        body { background: var(--bg); color: var(--text); margin: 0; padding: 15px; transition: 0.3s; }
 
-        body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            margin: 0;
-            padding: 10px;
-            transition: background 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        /* --- Header Controls --- */
+        .nav { display: flex; justify-content: space-between; max-width: 1200px; margin: 0 auto 15px; flex-wrap: wrap; gap: 10px; }
+        .btn {
+            padding: 8px 16px; border-radius: 6px; border: 1px solid var(--border);
+            background: var(--surface); color: var(--text); font-weight: 600; cursor: pointer; transition: 0.2s;
         }
+        .btn:hover { background: var(--shaded); border-color: var(--primary); }
+        .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 40px; font-size: 1.1rem; }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; transform: none; }
 
-        /* --- UI Controls --- */
-        .controls {
-            width: 100%;
-            max-width: 1000px;
-            display: flex;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
+        /* --- 3D Physics Octagon Tray --- */
+        .tray-wrapper {
+            width: 100%; max-width: 700px; height: 350px; margin: 0 auto 20px;
+            perspective: 1000px; position: relative;
         }
-
-        button {
-            padding: 8px 16px;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: transform 0.1s, opacity 0.2s;
-        }
-
-        button:active { transform: scale(0.95); }
-
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-secondary { background: var(--secondary); color: white; }
-
-        /* --- Dice Section --- */
-        .dice-area {
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 600px;
-        }
-
-        .dice-container {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 20px;
-            perspective: 1000px;
+        .tray {
+            width: 100%; height: 100%; background: var(--tray-bg);
+            clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+            box-shadow: inset 0 0 50px rgba(0,0,0,0.3);
+            position: relative; overflow: hidden;
+            border: 4px solid rgba(255,255,255,0.1);
         }
 
         .die {
-            width: 50px;
-            height: 50px;
-            background: var(--dice-bg);
-            border: 2px solid var(--border-color);
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            cursor: pointer;
-            user-select: none;
-            position: relative;
+            position: absolute; width: 45px; height: 45px; transform-style: preserve-3d;
+            transition: top 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67),
+                        left 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67),
+                        transform 0.6s cubic-bezier(0.17, 0.67, 0.83, 0.67);
         }
-
-        .die.held { border-color: var(--accent); background: var(--accent); color: white; }
-        .die.shaking { animation: shake 0.1s infinite; }
-
-        @keyframes shake {
-            0% { transform: translate(2px, 1px) rotate(0deg); }
-            50% { transform: translate(-1px, -2px) rotate(-2deg); }
-            100% { transform: translate(1px, 2px) rotate(2deg); }
+        .cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d; }
+        .face {
+            position: absolute; width: 45px; height: 45px; background: white;
+            border: 1px solid #ddd; border-radius: 6px; display: flex;
+            align-items: center; justify-content: center; font-size: 18px;
+            font-weight: bold; color: #333; box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
         }
+        .f1 { transform: rotateY(0deg) translateZ(22.5px); }
+        .f2 { transform: rotateY(180deg) translateZ(22.5px); }
+        .f3 { transform: rotateY(90deg) translateZ(22.5px); }
+        .f4 { transform: rotateY(-90deg) translateZ(22.5px); }
+        .f5 { transform: rotateX(90deg) translateZ(22.5px); }
+        .f6 { transform: rotateX(-90deg) translateZ(22.5px); }
+
+        /* --- Lock Rack --- */
+        .rack { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .slot {
+            width: 55px; height: 70px; background: var(--surface); border: 2px solid var(--border);
+            border-radius: 8px; display: flex; flex-direction: column; align-items: center;
+            justify-content: center; cursor: pointer; transition: 0.2s;
+        }
+        .slot.held { border-color: var(--primary); background: #eef7ff; transform: translateY(-4px); }
+        .slot b { font-size: 20px; }
+        .slot small { font-size: 8px; font-weight: bold; color: var(--primary); opacity: 0; }
+        .slot.held small { opacity: 1; }
 
         /* --- Scorecard Table --- */
-        .scorecard-wrapper {
-            width: 100%;
-            max-width: 1000px;
-            overflow-x: auto; /* For mobile multi-player */
-            background: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        .table-wrap { width: 100%; overflow-x: auto; display: flex; justify-content: center; }
+        table { border-collapse: collapse; background: var(--surface); box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        th, td { border: 1px solid var(--border); padding: 10px; text-align: center; min-width: 140px; }
+        .col-cat { width: 180px; text-align: left; font-weight: bold; position: sticky; left: 0; background: var(--surface); z-index: 10; }
+
+        .row-shaded { background: var(--shaded) !important; font-weight: 800; }
+        .score-input { width: 100%; border: none; background: transparent; text-align: center; font-size: 16px; font-weight: bold; color: var(--primary); outline: none; cursor: pointer; }
+
+        /* --- Clickable Radial Menu --- */
+        .radial-container { position: relative; display: inline-block; margin-top: 5px; }
+        .radial-menu {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            width: 110px; height: 110px; border-radius: 50%; background: transparent;
+            visibility: hidden; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 100;
+        }
+        .radial-menu.active { visibility: visible; transform: translate(-50%, -50%) scale(1); }
+        .dot {
+            position: absolute; width: 26px; height: 26px; border-radius: 50%; border: 2px solid white;
+            cursor: pointer; transform: translate(-50%, -50%); box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 400px;
+        /* --- Tooltips --- */
+        .info { cursor: help; color: var(--primary); margin-left: 5px; position: relative; display: inline-block; }
+        .tip {
+            position: absolute; bottom: 120%; left: 50%; transform: translateX(-50%);
+            width: 140px; background: #333; color: #fff; padding: 8px; border-radius: 6px;
+            font-size: 11px; display: none; z-index: 200; pointer-events: none;
         }
+        .info:hover .tip { display: block; }
 
-        th, td {
-            border: 1px solid var(--border-color);
-            padding: 10px;
-            text-align: center;
-        }
-
-        th:first-child, td:first-child {
-            text-align: left;
-            position: sticky;
-            left: 0;
-            background: var(--card-bg);
-            z-index: 2;
-            font-weight: bold;
-        }
-
-        .category-info {
-            cursor: help;
-            color: var(--primary);
-            font-size: 0.8em;
-            margin-left: 5px;
-        }
-
-        .score-cell {
-            cursor: pointer;
-            height: 40px;
-            transition: background 0.2s;
-        }
-
-        .score-cell:hover:not(.filled) { background: rgba(0,184,148,0.1); }
-        .score-cell.filled { font-weight: bold; color: var(--primary); cursor: default; }
-
-        .player-header input {
-            background: transparent;
-            border: none;
-            color: inherit;
-            font-weight: bold;
-            text-align: center;
-            width: 80px;
-            border-bottom: 2px solid transparent;
-        }
-
-        .player-header input:focus { border-bottom-color: var(--primary); outline: none; }
-
-        .subtotal-row { background: rgba(108, 92, 231, 0.1); font-weight: bold; }
-
-        /* --- Modal/Tooltip --- */
-        #modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: var(--card-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-            z-index: 100;
-            max-width: 300px;
-        }
-
-        .overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 99;
-        }
-
-        .hidden { display: none !important; }
-
-        @media (max-width: 600px) {
-            .die { width: 40px; height: 40px; font-size: 20px; }
-            th, td { padding: 6px; font-size: 0.9em; }
-        }
+        /* --- Drag and Drop --- */
+        .draggable { cursor: move; user-select: none; }
+        .dragging { opacity: 0.5; background: var(--shaded); }
     </style>
 </head>
 <body data-theme="light">
 
-    <div class="controls">
+    <div class="nav">
         <div>
-            <button class="btn-primary" onclick="game.addPlayer()">+ Add Player</button>
-            <button class="btn-secondary" onclick="game.toggleMode()" id="modeToggle">Mode: Game + Scorecard</button>
+            <button class="btn" onclick="game.addPlayer()">👤 Add Player</button>
+            <button class="btn" onclick="game.toggleMode()" id="modeBtn">📝 Scorecard Only</button>
         </div>
         <div>
-            <button onclick="game.toggleTheme()">🌙/☀️</button>
-            <button class="btn-primary" style="background:var(--danger)" onclick="game.resetGame()">Reset</button>
+            <button class="btn" onclick="game.toggleTheme()">🌓 Theme</button>
+            <button class="btn" onclick="game.resetDice()">🎲 Clear Dice</button>
+            <button class="btn" style="color:#e74c3c" onclick="game.fullReset()">Full Reset</button>
         </div>
     </div>
 
-    <div id="diceArea" class="dice-area">
-        <div class="dice-container" id="diceContainer">
-            </div>
-        <p id="rollCount">Rolls: 0 / 3</p>
-        <button id="cupBtn" class="btn-primary" style="padding: 20px 40px; font-size: 1.2em;">
-            Hold to Shake Cup
-        </button>
+    <div class="tray-wrapper">
+        <div class="tray" id="tray"></div>
     </div>
 
-    <div class="scorecard-wrapper">
+    <div class="rack">
+        <div class="slot" onclick="game.toggleHold(0)" id="slot-0"><small>LOCKED</small><b id="v-0">-</b></div>
+        <div class="slot" onclick="game.toggleHold(1)" id="slot-1"><small>LOCKED</small><b id="v-1">-</b></div>
+        <div class="slot" onclick="game.toggleHold(2)" id="slot-2"><small>LOCKED</small><b id="v-2">-</b></div>
+        <div class="slot" onclick="game.toggleHold(3)" id="slot-3"><small>LOCKED</small><b id="v-3">-</b></div>
+        <div class="slot" onclick="game.toggleHold(4)" id="slot-4"><small>LOCKED</small><b id="v-4">-</b></div>
+    </div>
+
+    <div style="text-align:center; margin-bottom:30px;">
+        <button class="btn btn-primary" id="rollBtn" onclick="game.roll()">ROLL DICE</button>
+        <p id="rollCounter" style="font-weight:bold; margin-top:8px;">ROLL 0 / 3</p>
+    </div>
+
+    <div class="table-wrap">
         <table id="scoreTable">
-            <thead>
-                <tr id="headerRow">
-                    <th>Categories</th>
-                    </tr>
-            </thead>
-            <tbody id="scoreBody">
-                </tbody>
+            <thead id="head"></thead>
+            <tbody id="rows"></tbody>
         </table>
     </div>
 
-    <div id="modal">
-        <h3 id="modalTitle"></h3>
-        <p id="modalBody"></p>
-        <button onclick="game.closeModal()">Close</button>
-    </div>
-    <div class="overlay" id="overlay" onclick="game.closeModal()"></div>
-
     <script>
-        const CATEGORIES = [
-            { id: 'ones', name: 'Ones', desc: 'Total of all 1s', section: 'upper' },
-            { id: 'twos', name: 'Twos', desc: 'Total of all 2s', section: 'upper' },
-            { id: 'threes', name: 'Threes', desc: 'Total of all 3s', section: 'upper' },
-            { id: 'fours', name: 'Fours', desc: 'Total of all 4s', section: 'upper' },
-            { id: 'fives', name: 'Fives', desc: 'Total of all 5s', section: 'upper' },
-            { id: 'sixes', name: 'Sixes', desc: 'Total of all 6s', section: 'upper' },
-            { id: 'upperBonus', name: 'Bonus (63+)', desc: 'Score 35 pts if upper total is 63+', section: 'meta', calc: true },
-            { id: 'threeKind', name: '3 of a Kind', desc: 'At least 3 dice same. Score total of all dice.', section: 'lower' },
-            { id: 'fourKind', name: '4 of a Kind', desc: 'At least 4 dice same. Score total of all dice.', section: 'lower' },
-            { id: 'fullHouse', name: 'Full House', desc: '3 of one, 2 of another. Score 25.', section: 'lower' },
-            { id: 'smStraight', name: 'Sm Straight', desc: '4 in a row. Score 30.', section: 'lower' },
-            { id: 'lgStraight', name: 'Lg Straight', desc: '5 in a row. Score 40.', section: 'lower' },
-            { id: 'yahtzee', name: 'Yahtzee', desc: 'All 5 same. Score 50.', section: 'lower' },
-            { id: 'chance', name: 'Chance', desc: 'Total of all dice.', section: 'lower' },
-            { id: 'total', name: 'GRAND TOTAL', desc: 'Sum of all points.', section: 'meta', calc: true }
+        const COLORS = ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c7', '--c8'];
+        const RULES = [
+            { id: '1s', name: 'Ones', tip: 'Total of 1s' },
+            { id: '2s', name: 'Twos', tip: 'Total of 2s' },
+            { id: '3s', name: 'Threes', tip: 'Total of 3s' },
+            { id: '4s', name: 'Fours', tip: 'Total of 4s' },
+            { id: '5s', name: 'Fives', tip: 'Total of 5s' },
+            { id: '6s', name: 'Sixes', tip: 'Total of 6s' },
+            { id: 'uSum', name: 'Upper Total', tip: 'Sum of 1-6', shaded: true, calc: true },
+            { id: 'bonus', name: 'Bonus', tip: '35 pts if Total ≥ 63', shaded: true, calc: true },
+            { id: 'tk', name: '3 of a Kind', tip: 'Sum of all dice' },
+            { id: 'fk', name: '4 of a Kind', tip: 'Sum of all dice' },
+            { id: 'fh', name: 'Full House', tip: '25 pts' },
+            { id: 'ss', name: 'Small Straight', tip: '30 pts' },
+            { id: 'ls', name: 'Large Straight', tip: '40 pts' },
+            { id: 'yz', name: 'Yahtzee', tip: '50 pts' },
+            { id: 'ch', name: 'Chance', tip: 'Sum of all' },
+            { id: 'grand', name: 'GRAND TOTAL', tip: 'Final Score', shaded: true, calc: true }
         ];
 
-        class YahtzeeGame {
-            constructor() {
-                this.players = [{ name: 'Player 1', color: '#0984e3', scores: {} }];
-                this.dice = [1, 1, 1, 1, 1];
-                this.held = [false, false, false, false, false];
-                this.rolls = 0;
-                this.isOnlyScorecard = false;
-                this.shakeInterval = null;
+        const ROT = { 1:'rotateX(0deg)', 2:'rotateY(180deg)', 3:'rotateY(-90deg)', 4:'rotateY(90deg)', 5:'rotateX(-90deg)', 6:'rotateX(90deg)' };
 
+        class YahtzeeElite {
+            constructor() {
+                this.players = [{ name: 'Player 1', color: '--c1', scores: {} }];
+                this.dice = [0,0,0,0,0];
+                this.held = [false,false,false,false,false];
+                this.rolls = 0;
+                this.isScorecardOnly = false;
+                this.isRolling = false;
                 this.init();
             }
 
-            init() {
-                this.renderTable();
-                this.renderDice();
-                this.setupEventListeners();
-            }
+            init() { this.renderAll(); }
 
-            setupEventListeners() {
-                const cupBtn = document.getElementById('cupBtn');
-                
-                // Shake Cup Logic
-                const startShake = (e) => {
-                    if (this.rolls >= 3) return;
-                    e.preventDefault();
-                    this.shakeInterval = setInterval(() => {
-                        document.querySelectorAll('.die:not(.held)').forEach(d => d.classList.add('shaking'));
-                    }, 50);
-                };
-
-                const stopShake = () => {
-                    if (!this.shakeInterval) return;
-                    clearInterval(this.shakeInterval);
-                    this.shakeInterval = null;
-                    document.querySelectorAll('.die').forEach(d => d.classList.remove('shaking'));
-                    this.rollDice();
-                };
-
-                cupBtn.addEventListener('pointerdown', startShake);
-                window.addEventListener('pointerup', stopShake);
-            }
-
-            toggleMode() {
-                this.isOnlyScorecard = !this.isOnlyScorecard;
-                document.getElementById('diceArea').classList.toggle('hidden', this.isOnlyScorecard);
-                document.getElementById('modeToggle').innerText = this.isOnlyScorecard ? "Mode: Scorecard Only" : "Mode: Game + Scorecard";
-            }
-
-            toggleTheme() {
-                const body = document.body;
-                body.dataset.theme = body.dataset.theme === 'dark' ? 'light' : 'dark';
-            }
-
-            addPlayer() {
-                const colors = ['#0984e3', '#6c5ce7', '#00b894', '#e17055', '#d63031', '#fdcb6e'];
-                const nextColor = colors[this.players.length % colors.length];
-                this.players.push({ 
-                    name: `Player ${this.players.length + 1}`, 
-                    color: nextColor, 
-                    scores: {} 
-                });
-                this.renderTable();
-            }
-
-            rollDice() {
-                if (this.rolls >= 3) return;
-                this.dice = this.dice.map((d, i) => this.held[i] ? d : Math.floor(Math.random() * 6) + 1);
+            // --- Physics Roll ---
+            roll() {
+                if (this.rolls >= 3 || this.isRolling) return;
+                this.isRolling = true;
                 this.rolls++;
-                this.renderDice();
-                document.getElementById('rollCount').innerText = `Rolls: ${this.rolls} / 3`;
-            }
 
-            toggleHold(index) {
-                if (this.rolls === 0) return;
-                this.held[index] = !this.held[index];
-                this.renderDice();
-            }
+                const tray = document.getElementById('tray');
+                // Persistence: Only clear tray dice that aren't held
+                const activeDice = tray.querySelectorAll('.die');
+                activeDice.forEach(d => { if(!this.held[d.dataset.idx]) d.remove(); });
 
-            renderDice() {
-                const container = document.getElementById('diceContainer');
-                container.innerHTML = '';
+                this.dice = this.dice.map((v, i) => this.held[i] ? v : Math.floor(Math.random() * 6) + 1);
+
                 this.dice.forEach((val, i) => {
-                    const d = document.createElement('div');
-                    d.className = `die ${this.held[i] ? 'held' : ''}`;
-                    d.innerText = val;
-                    d.onclick = () => this.toggleHold(i);
-                    container.appendChild(d);
+                    if (this.held[i]) return;
+                    const die = document.createElement('div');
+                    die.className = 'die';
+                    die.dataset.idx = i;
+                    die.style.left = '50%'; die.style.top = '-50px';
+                    die.innerHTML = `<div class="cube" id="cube-${i}">
+                        ${[1,2,3,4,5,6].map(n => `<div class="face f${n}">${n}</div>`).join('')}
+                    </div>`;
+                    tray.appendChild(die);
+
+                    // Physics Tumble
+                    setTimeout(() => {
+                        die.style.left = `${10 + Math.random() * 80}%`;
+                        die.style.top = `${15 + Math.random() * 70}%`;
+                        const cube = document.getElementById(`cube-${i}`);
+                        cube.style.transform = `${ROT[val]} rotateZ(${Math.random() * 360}deg)`;
+                    }, i * 60);
                 });
+
+                setTimeout(() => {
+                    this.isRolling = false;
+                    this.updateRack();
+                    document.getElementById('rollCounter').innerText = `ROLL ${this.rolls} / 3`;
+                    if(this.rolls === 3) document.getElementById('rollBtn').disabled = true;
+                }, 800);
             }
 
-            renderTable() {
-                const headerRow = document.getElementById('headerRow');
-                const scoreBody = document.getElementById('scoreBody');
-                
-                // Clear
-                headerRow.innerHTML = '<th>Categories</th>';
-                scoreBody.innerHTML = '';
+            updateRack() { this.dice.forEach((v, i) => { document.getElementById(`v-${i}`).innerText = v || '-'; }); }
 
-                // Headers
-                this.players.forEach((p, i) => {
-                    const th = document.createElement('th');
-                    th.className = 'player-header';
-                    th.style.color = p.color;
-                    th.innerHTML = `<input type="text" value="${p.name}" onchange="game.updateName(${i}, this.value)">`;
-                    headerRow.appendChild(th);
-                });
+            toggleHold(i) {
+                if (this.rolls === 0 || this.isRolling) return;
+                this.held[i] = !this.held[i];
+                document.getElementById(`slot-${i}`).classList.toggle('held', this.held[i]);
+            }
 
-                // Rows
-                CATEGORIES.forEach(cat => {
-                    const tr = document.createElement('tr');
-                    if (cat.calc) tr.className = 'subtotal-row';
-
-                    let html = `<td>
-                        ${cat.name} 
-                        <span class="category-info" onclick="game.showInfo('${cat.name}', '${cat.desc}')">ⓘ</span>
-                    </td>`;
-
-                    this.players.forEach((p, pIdx) => {
-                        const score = p.scores[cat.id];
-                        const displayScore = score !== undefined ? score : (cat.calc ? this.calculateMeta(pIdx, cat.id) : '');
-                        const isFilled = score !== undefined;
-                        
-                        html += `<td class="score-cell ${isFilled ? 'filled' : ''}" 
-                                     onclick="game.setScore(${pIdx}, '${cat.id}')">
-                                     ${displayScore}
-                                 </td>`;
+            // --- Drag and Drop ---
+            setupDragEvents() {
+                const headers = document.querySelectorAll('.col-player');
+                headers.forEach(header => {
+                    header.addEventListener('dragstart', (e) => {
+                        e.dataTransfer.setData('text/plain', header.dataset.idx);
+                        header.classList.add('dragging');
                     });
-
-                    tr.innerHTML = html;
-                    scoreBody.appendChild(tr);
+                    header.addEventListener('dragover', (e) => e.preventDefault());
+                    header.addEventListener('drop', (e) => {
+                        const fromIdx = e.dataTransfer.getData('text/plain');
+                        const toIdx = header.dataset.idx;
+                        this.movePlayer(parseInt(fromIdx), parseInt(toIdx));
+                    });
+                    header.addEventListener('dragend', () => header.classList.remove('dragging'));
                 });
             }
 
-            updateName(index, val) {
-                this.players[index].name = val;
+            movePlayer(from, to) {
+                const player = this.players.splice(from, 1)[0];
+                this.players.splice(to, 0, player);
+                this.renderAll();
             }
 
-            setScore(pIdx, catId) {
-                const cat = CATEGORIES.find(c => c.id === catId);
-                if (cat.calc || this.players[pIdx].scores[catId] !== undefined) return;
-
-                let score = 0;
-                if (this.isOnlyScorecard) {
-                    const val = prompt(`Enter score for ${CATEGORIES.find(c => c.id === catId).name}:`, "0");
-                    score = parseInt(val) || 0;
-                } else {
-                    if (this.rolls === 0) {
-                        alert("Roll the dice first!");
-                        return;
-                    }
-                    score = this.getLogicScore(catId);
-                    this.resetTurn();
-                }
-
-                this.players[pIdx].scores[catId] = score;
-                this.renderTable();
+            // --- UI Rendering ---
+            renderAll() {
+                this.renderHeaders();
+                this.renderRows();
+                this.setupDragEvents();
             }
 
-            getLogicScore(id) {
+            renderHeaders() {
+                const head = document.getElementById('head');
+                let html = `<tr><th class="col-cat"></th>`;
+                this.players.forEach((p, i) => {
+                    html += `
+                        <th class="col-player draggable" draggable="true" data-idx="${i}" style="background: var(${p.color})">
+                            <input value="${p.name}" onchange="game.players[${i}].name=this.value"
+                                style="border:none; background:transparent; font-weight:bold; text-align:center; width:100px;">
+                            <div class="radial-container">
+                                <div onclick="game.toggleRadial(${i})" style="width:20px; height:20px; border-radius:50%; background:var(${p.color}); border:2px solid #fff; cursor:pointer; margin:5px auto;"></div>
+                                <div class="radial-menu" id="radial-${i}">
+                                    ${COLORS.map((c, ci) => `
+                                        <div class="dot" style="background:var(${c});
+                                             left:${50 + 40 * Math.cos(ci * 0.78)}%;
+                                             top:${50 + 40 * Math.sin(ci * 0.78)}%;"
+                                             onclick="game.setPlayerColor(${i}, '${c}')"></div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div onclick="game.removePlayer(${i})" style="font-size:10px; cursor:pointer; opacity:0.6;">Remove</div>
+                        </th>`;
+                });
+                head.innerHTML = html + `</tr>`;
+            }
+
+            renderRows() {
+                const tbody = document.getElementById('rows');
+                tbody.innerHTML = '';
+                RULES.forEach(rule => {
+                    const tr = document.createElement('tr');
+                    if (rule.shaded) tr.classList.add('row-shaded');
+                    let html = `<td class="col-cat">
+                        ${rule.name} <span class="info">ⓘ<div class="tip">${rule.tip}</div></span>
+                    </td>`;
+                    this.players.forEach((p, pIdx) => {
+                        const score = p.scores[rule.id];
+                        if (rule.calc) {
+                            html += `<td style="background: var(${p.color})">${this.calculate(pIdx, rule.id)}</td>`;
+                        } else {
+                            html += `
+                                <td style="background: var(${p.color})">
+                                    <input class="score-input" type="number" value="${score ?? ''}"
+                                        ${this.isScorecardOnly ? '' : 'readonly'}
+                                        onclick="${this.isScorecardOnly ? '' : `game.scoreMove(${pIdx}, '${rule.id}')`}"
+                                        onchange="game.manualEntry(${pIdx}, '${rule.id}', this.value)">
+                                </td>`;
+                        }
+                    });
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // --- Mechanics ---
+            toggleRadial(i) {
+                const menu = document.getElementById(`radial-${i}`);
+                const isActive = menu.classList.contains('active');
+                document.querySelectorAll('.radial-menu').forEach(m => m.classList.remove('active'));
+                if(!isActive) menu.classList.add('active');
+            }
+
+            setPlayerColor(i, c) { this.players[i].color = c; this.renderAll(); }
+
+            scoreMove(pIdx, id) {
+                if (this.rolls === 0 || this.players[pIdx].scores[id] !== undefined) return;
+                this.players[pIdx].scores[id] = this.calcLogic(id);
+                this.resetDice();
+                this.renderAll();
+            }
+
+            manualEntry(pIdx, id, val) {
+                let n = parseInt(val);
+                if (isNaN(n)) delete this.players[pIdx].scores[id];
+                else this.players[pIdx].scores[id] = n;
+                this.renderRows();
+            }
+
+            resetDice() {
+                this.rolls = 0; this.held = [false,false,false,false,false]; this.dice = [0,0,0,0,0];
+                document.getElementById('rollBtn').disabled = false;
+                document.getElementById('rollCounter').innerText = `ROLL 0 / 3`;
+                document.getElementById('tray').innerHTML = '';
+                document.querySelectorAll('.slot').forEach(s => s.classList.remove('held'));
+                this.updateRack();
+            }
+
+            fullReset() { if(confirm("Reset entire game?")) { this.players.forEach(p => p.scores = {}); this.resetDice(); this.renderAll(); }}
+
+            calcLogic(id) {
                 const d = this.dice;
-                const counts = {};
-                d.forEach(x => counts[x] = (counts[x] || 0) + 1);
-                const sum = d.reduce((a, b) => a + b, 0);
-                const unique = [...new Set(d)].sort();
-
+                const sum = d.reduce((a,b)=>a+b, 0);
+                const counts = d.reduce((acc, v) => { acc[v] = (acc[v] || 0) + 1; return acc; }, {});
+                const u = [...new Set(d)].sort();
                 switch(id) {
-                    case 'ones': return d.filter(x => x === 1).length * 1;
-                    case 'twos': return d.filter(x => x === 2).length * 2;
-                    case 'threes': return d.filter(x => x === 3).length * 3;
-                    case 'fours': return d.filter(x => x === 4).length * 4;
-                    case 'fives': return d.filter(x => x === 5).length * 5;
-                    case 'sixes': return d.filter(x => x === 6).length * 6;
-                    case 'threeKind': return Object.values(counts).some(c => c >= 3) ? sum : 0;
-                    case 'fourKind': return Object.values(counts).some(c => c >= 4) ? sum : 0;
-                    case 'fullHouse': return (Object.values(counts).includes(3) && Object.values(counts).includes(2)) ? 25 : 0;
-                    case 'smStraight': 
-                        const sStr = unique.join('');
-                        return (/1234|2345|3456/.test(sStr)) ? 30 : 0;
-                    case 'lgStraight':
-                        const lStr = unique.join('');
-                        return (/12345|23456/.test(lStr)) ? 40 : 0;
-                    case 'yahtzee': return Object.values(counts).includes(5) ? 50 : 0;
-                    case 'chance': return sum;
+                    case '1s': return d.filter(x=>x===1).length;
+                    case '2s': return d.filter(x=>x===2).length * 2;
+                    case '3s': return d.filter(x=>x===3).length * 3;
+                    case '4s': return d.filter(x=>x===4).length * 4;
+                    case '5s': return d.filter(x=>x===5).length * 5;
+                    case '6s': return d.filter(x=>x===6).length * 6;
+                    case 'tk': return Object.values(counts).some(x=>x>=3) ? sum : 0;
+                    case 'fk': return Object.values(counts).some(x=>x>=4) ? sum : 0;
+                    case 'fh': return Object.values(counts).includes(3) && Object.values(counts).includes(2) ? 25 : 0;
+                    case 'ss': return /1234|2345|3456/.test(u.join('')) ? 30 : 0;
+                    case 'ls': return /12345|23456/.test(u.join('')) ? 40 : 0;
+                    case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
+                    case 'ch': return sum;
                     default: return 0;
                 }
             }
 
-            calculateMeta(pIdx, type) {
+            calculate(pIdx, type) {
                 const p = this.players[pIdx];
-                const upperSum = CATEGORIES.filter(c => c.section === 'upper')
-                                  .reduce((acc, c) => acc + (p.scores[c.id] || 0), 0);
-                
-                if (type === 'upperBonus') return upperSum >= 63 ? 35 : 0;
-                
-                if (type === 'total') {
-                    const lowerSum = CATEGORIES.filter(c => c.section === 'lower')
-                                      .reduce((acc, c) => acc + (p.scores[c.id] || 0), 0);
-                    const bonus = upperSum >= 63 ? 35 : 0;
-                    return upperSum + lowerSum + bonus;
-                }
-                return 0;
-            }
-
-            resetTurn() {
-                this.rolls = 0;
-                this.held = [false, false, false, false, false];
-                this.dice = [1, 1, 1, 1, 1];
-                document.getElementById('rollCount').innerText = `Rolls: 0 / 3`;
-                this.renderDice();
-            }
-
-            resetGame() {
-                if (confirm("Reset the entire game?")) {
-                    this.players.forEach(p => p.scores = {});
-                    this.resetTurn();
-                    this.renderTable();
+                const uIds = ['1s','2s','3s','4s','5s','6s'];
+                const uSum = uIds.reduce((s, id) => s + (p.scores[id] || 0), 0);
+                if(type === 'uSum') return uSum;
+                if(type === 'bonus') return uSum >= 63 ? 35 : 0;
+                if(type === 'grand') {
+                    const lSum = RULES.filter(r => !r.calc && !uIds.includes(r.id)).reduce((s, r) => s + (p.scores[r.id] || 0), 0);
+                    return uSum + lSum + (uSum >= 63 ? 35 : 0);
                 }
             }
 
-            showInfo(title, body) {
-                document.getElementById('modalTitle').innerText = title;
-                document.getElementById('modalBody').innerText = body;
-                document.getElementById('modal').style.display = 'block';
-                document.getElementById('overlay').style.display = 'block';
-            }
-
-            closeModal() {
-                document.getElementById('modal').style.display = 'none';
-                document.getElementById('overlay').style.display = 'none';
-            }
+            addPlayer() { this.players.push({ name: `Player ${this.players.length+1}`, color: COLORS[this.players.length % 8], scores: {} }); this.renderAll(); }
+            removePlayer(i) { if(this.players.length > 1) { this.players.splice(i,1); this.renderAll(); }}
+            toggleMode() { this.isScorecardOnly = !this.isScorecardOnly; document.getElementById('modeBtn').innerText = this.isScorecardOnly ? "🎮 Enable Dice" : "📝 Scorecard Only"; this.renderRows(); }
+            toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
         }
 
-        const game = new YahtzeeGame();
+        const game = new YahtzeeElite();
     </script>
 </body>
 </html>
