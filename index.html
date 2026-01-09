@@ -3,41 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yahtzee Elite - Premium Edition</title>
-    <!-- Physics Engine -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+    <title>Yahtzee Elite 3D - Real Physics</title>
+    
+    <!-- 3D & Physics Engines -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
 
         :root {
-            --bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
             --surface: #ffffff;
             --text: #2d3748;
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --success: #48bb78;
-            --danger: #f56565;
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --success: #22c55e;
+            --danger: #ef4444;
             --border: #e2e8f0;
-            --shadow: rgba(0,0,0,0.1);
-            --tray-bg: linear-gradient(145deg, #2d3748, #1a202c);
+            --shadow: rgba(0,0,0,0.2);
+            --tray-bg: #0f172a; 
             
             /* Player Colors */
-            --c1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            --c2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            --c3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-            --c4: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-            --c5: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            --c6: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
-            --c7: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-            --c8: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            --c1: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+            --c2: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
+            --c3: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+            --c4: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+            --c5: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            --c6: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+            --c7: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+            --c8: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
         }
 
         [data-theme="dark"] {
-            --bg: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
-            --surface: #2d3748;
-            --text: #e2e8f0;
-            --border: #4a5568;
-            --shadow: rgba(0,0,0,0.3);
+            --surface: #1e293b;
+            --text: #f8fafc;
+            --border: #334155;
+            --shadow: rgba(0,0,0,0.4);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -80,7 +82,7 @@
             border-radius: 12px;
             border: none;
             background: white;
-            color: var(--text);
+            color: #1e293b;
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
@@ -91,72 +93,125 @@
             gap: 8px;
         }
         
-        .btn:hover { transform: translateY(-2px); }
-        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 16px 48px; font-size: 18px; }
-        .btn-danger { background: linear-gradient(135deg, #f56565 0%, #c53030 100%); color: white; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--shadow); }
+        .btn:active { transform: translateY(0); }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
+            color: white; 
+            padding: 16px 48px; 
+            font-size: 20px; 
+            letter-spacing: 1px;
+        }
+        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
 
         /* Physics Tray */
         .tray-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto 30px;
-            background: white;
+            background: #1e293b;
             border-radius: 24px;
-            padding: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+            padding: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            border: 4px solid #334155;
+            position: relative;
         }
 
         #tray {
             width: 100%;
-            height: 400px;
+            height: 500px;
             background: var(--tray-bg);
             border-radius: 16px;
-            position: relative;
             overflow: hidden;
-            box-shadow: inset 0 10px 40px rgba(0,0,0,0.5);
+            position: relative;
         }
 
         canvas {
             display: block;
             width: 100%;
             height: 100%;
+            outline: none;
         }
 
         /* Rack */
         .rack-container {
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto 30px;
-            background: white;
+            background: var(--surface);
             border-radius: 20px;
             padding: 20px;
             box-shadow: 0 10px 40px var(--shadow);
         }
 
-        .rack-title { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; font-size: 14px; }
+        .rack-title { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; font-size: 14px; }
 
-        .rack { display: flex; justify-content: center; gap: 16px; }
+        .rack { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
 
         .slot {
-            width: 80px; height: 100px;
-            background: linear-gradient(145deg, #f7fafc, #edf2f7);
+            width: 90px; height: 110px;
+            background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
             border: 3px solid var(--border);
-            border-radius: 12px;
+            border-radius: 16px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.3s;
+            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
         }
 
         .slot:hover { transform: translateY(-4px); border-color: var(--primary); }
         
         .slot.held {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-color: var(--primary);
+            border-color: transparent;
             transform: translateY(-8px);
+            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
         }
         .slot.held .slot-value { color: white; }
         .slot.held .slot-label { opacity: 1; color: white; }
+        
+        /* Dice graphics in slot */
+        .slot-die-face {
+            width: 50px; height: 50px;
+            background: white;
+            border-radius: 10px;
+            display: grid;
+            grid-template-areas: "a . c" "e g f" "d . b";
+            padding: 4px;
+            gap: 2px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .dot { width: 8px; height: 8px; background: #333; border-radius: 50%; display: none; margin: auto;}
+        
+        /* Dot positioning logic */
+        .d1 .dot:nth-child(1) { grid-area: g; display: block; }
+        
+        .d2 .dot:nth-child(1) { grid-area: a; display: block; }
+        .d2 .dot:nth-child(2) { grid-area: b; display: block; }
+        
+        .d3 .dot:nth-child(1) { grid-area: a; display: block; }
+        .d3 .dot:nth-child(2) { grid-area: g; display: block; }
+        .d3 .dot:nth-child(3) { grid-area: b; display: block; }
 
-        .slot-value { font-size: 36px; font-weight: 700; color: var(--text); }
-        .slot-label { font-size: 10px; font-weight: 700; color: var(--primary); margin-top: 4px; opacity: 0; }
+        .d4 .dot:nth-child(1) { grid-area: a; display: block; }
+        .d4 .dot:nth-child(2) { grid-area: c; display: block; }
+        .d4 .dot:nth-child(3) { grid-area: d; display: block; }
+        .d4 .dot:nth-child(4) { grid-area: b; display: block; }
+
+        .d5 .dot:nth-child(1) { grid-area: a; display: block; }
+        .d5 .dot:nth-child(2) { grid-area: c; display: block; }
+        .d5 .dot:nth-child(3) { grid-area: g; display: block; }
+        .d5 .dot:nth-child(4) { grid-area: d; display: block; }
+        .d5 .dot:nth-child(5) { grid-area: b; display: block; }
+
+        .d6 .dot:nth-child(1) { grid-area: a; display: block; }
+        .d6 .dot:nth-child(2) { grid-area: c; display: block; }
+        .d6 .dot:nth-child(3) { grid-area: e; display: block; }
+        .d6 .dot:nth-child(4) { grid-area: f; display: block; }
+        .d6 .dot:nth-child(5) { grid-area: d; display: block; }
+        .d6 .dot:nth-child(6) { grid-area: b; display: block; }
+
+        .slot-value { font-size: 24px; font-weight: 700; color: var(--text); display: none; } /* Hidden, using graphics */
+        .slot-label { font-size: 11px; font-weight: 700; color: var(--primary); margin-top: 8px; opacity: 0; letter-spacing: 1px; }
 
         /* Roll Area - CENTERED */
         .roll-area {
@@ -168,13 +223,13 @@
             margin-bottom: 40px;
         }
 
-        .roll-counter { color: white; font-weight: 700; font-size: 18px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .roll-counter { color: white; font-weight: 700; font-size: 18px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px; }
 
         /* Scorecard */
         .scorecard-container {
             max-width: 1400px;
             margin: 0 auto;
-            background: white;
+            background: var(--surface);
             border-radius: 24px;
             padding: 30px;
             box-shadow: 0 20px 60px var(--shadow);
@@ -182,49 +237,53 @@
         }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th, td { padding: 16px; text-align: center; border-bottom: 2px solid var(--border); }
-        th { font-weight: 700; font-size: 14px; }
+        th, td { padding: 16px; text-align: center; border-bottom: 1px solid var(--border); }
+        th { font-weight: 700; font-size: 14px; color: var(--text); }
         
-        .col-cat { text-align: left; width: 200px; position: sticky; left: 0; background: white; z-index: 10; font-weight: 700; }
+        .col-cat { text-align: left; width: 200px; position: sticky; left: 0; background: var(--surface); z-index: 10; font-weight: 700; border-right: 1px solid var(--border); }
         .col-player { min-width: 140px; cursor: grab; }
 
-        .player-header { border-radius: 12px; padding: 16px; color: white; position: relative; }
-        .player-name-input { border: none; background: rgba(255,255,255,0.2); color: white; font-weight: 700; text-align: center; width: 100%; padding: 8px; border-radius: 8px; }
+        .player-header { border-radius: 12px; padding: 16px; color: white; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .player-name-input { border: none; background: rgba(255,255,255,0.2); color: white; font-weight: 700; text-align: center; width: 100%; padding: 8px; border-radius: 8px; backdrop-filter: blur(5px); }
         .player-controls { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
 
-        .score-input { width: 100%; border: none; text-align: center; font-size: 20px; font-weight: 700; outline: none; background: transparent; }
-        .score-input:hover:not([readonly]) { background: rgba(102, 126, 234, 0.1); border-radius: 8px; }
-        .score-suggestion { position: absolute; top: 4px; right: 4px; background: var(--success); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        .score-input { width: 100%; border: none; text-align: center; font-size: 20px; font-weight: 700; outline: none; background: transparent; color: var(--text); }
+        .score-input:hover:not([readonly]) { background: rgba(99, 102, 241, 0.1); border-radius: 8px; cursor: pointer; }
+        .score-suggestion { position: absolute; top: 4px; right: 4px; background: var(--success); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .score-cell { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; }
         
-        .row-shaded td { background: linear-gradient(145deg, #f7fafc, #edf2f7); }
+        .row-shaded td { background: rgba(0,0,0,0.03); }
         .calculated-score { font-size: 22px; font-weight: 700; color: var(--primary); }
 
         /* Utilities */
-        .color-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .color-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .color-modal.active { opacity: 1; pointer-events: all; }
-        .color-modal-content { background: white; padding: 30px; border-radius: 20px; }
+        .color-modal-content { background: var(--surface); padding: 30px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
         .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
-        .color-option { width: 60px; height: 60px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+        .color-option { width: 60px; height: 60px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .color-option:hover { transform: scale(1.1); }
-        .info { display: inline-flex; width: 20px; height: 20px; background: var(--primary); color: white; border-radius: 50%; font-size: 12px; align-items: center; justify-content: center; cursor: help; margin-left: 8px; position: relative; }
-        .tip { position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 12px; border-radius: 8px; width: max-content; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; }
+        
+        .info { display: inline-flex; width: 18px; height: 18px; background: var(--border); color: var(--text); border-radius: 50%; font-size: 11px; align-items: center; justify-content: center; cursor: help; margin-left: 8px; position: relative; }
+        .tip { position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px; border-radius: 8px; width: max-content; max-width: 200px; font-weight: 400; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); font-size: 12px; line-height: 1.4; }
         .info:hover .tip { opacity: 1; }
         
         @media (max-width: 768px) {
             .header h1 { font-size: 2rem; }
-            .rack { gap: 8px; }
+            .rack { gap: 10px; }
             .slot { width: 60px; height: 80px; }
+            .slot-die-face { width: 35px; height: 35px; padding: 2px; }
+            .dot { width: 6px; height: 6px; }
+            #tray { height: 350px; }
         }
     </style>
 </head>
 <body data-theme="light">
     <div class="header">
-        <h1>🎲 Yahtzee Elite</h1>
+        <h1>🎲 Yahtzee Elite 3D</h1>
         <div class="controls">
             <button class="btn" onclick="game.addPlayer()">👤 Add Player</button>
-            <button class="btn" onclick="game.toggleMode()" id="modeBtn">📋 Scorecard Only</button>
             <button class="btn" onclick="game.toggleTheme()">🌓 Theme</button>
-            <button class="btn" onclick="game.resetDice()">🎲 New Turn</button>
+            <button class="btn" onclick="game.resetDice()">🔄 Clear Tray</button>
             <button class="btn btn-danger" onclick="game.fullReset()">♻️ Full Reset</button>
         </div>
     </div>
@@ -235,26 +294,46 @@
         </div>
 
         <div class="rack-container">
-            <div class="rack-title">Lock Dice - Click to Hold</div>
+            <div class="rack-title">Dice Rack - Click to Hold</div>
             <div class="rack">
+                <!-- Slot 1 -->
                 <div class="slot" onclick="game.toggleHold(0)" id="slot-0">
-                    <div class="slot-value" id="v-0">-</div>
+                    <div class="slot-die-face d1" id="gfx-0">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
                     <div class="slot-label">LOCKED</div>
                 </div>
+                <!-- Slot 2 -->
                 <div class="slot" onclick="game.toggleHold(1)" id="slot-1">
-                    <div class="slot-value" id="v-1">-</div>
+                    <div class="slot-die-face d1" id="gfx-1">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
                     <div class="slot-label">LOCKED</div>
                 </div>
+                <!-- Slot 3 -->
                 <div class="slot" onclick="game.toggleHold(2)" id="slot-2">
-                    <div class="slot-value" id="v-2">-</div>
+                    <div class="slot-die-face d1" id="gfx-2">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
                     <div class="slot-label">LOCKED</div>
                 </div>
+                <!-- Slot 4 -->
                 <div class="slot" onclick="game.toggleHold(3)" id="slot-3">
-                    <div class="slot-value" id="v-3">-</div>
+                    <div class="slot-die-face d1" id="gfx-3">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
                     <div class="slot-label">LOCKED</div>
                 </div>
+                <!-- Slot 5 -->
                 <div class="slot" onclick="game.toggleHold(4)" id="slot-4">
-                    <div class="slot-value" id="v-4">-</div>
+                    <div class="slot-die-face d1" id="gfx-4">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
                     <div class="slot-label">LOCKED</div>
                 </div>
             </div>
@@ -277,7 +356,7 @@
 
     <div class="color-modal" id="colorModal" onclick="game.closeColorModal()">
         <div class="color-modal-content" onclick="event.stopPropagation()">
-            <h3 style="text-align: center;">Choose Color</h3>
+            <h3 style="text-align: center; margin-bottom: 20px; color: var(--text);">Choose Color</h3>
             <div class="color-grid" id="colorGrid"></div>
         </div>
     </div>
@@ -306,253 +385,344 @@
         class YahtzeeElite {
             constructor() {
                 this.players = [{ name: 'Player 1', color: '--c1', scores: {} }];
-                this.dice = [0, 0, 0, 0, 0];
+                this.diceValues = [1, 1, 1, 1, 1]; // Logical values
                 this.held = [false, false, false, false, false];
                 this.rolls = 0;
-                this.isScorecardOnly = false;
                 this.isRolling = false;
-                this.engine = null;
-                this.diceBodies = [];
                 this.currentColorPickerPlayer = null;
                 
-                // Canvas vars
-                this.canvas = null;
-                this.ctx = null;
-                this.width = 0;
-                this.height = 0;
-
+                // 3D Variables
+                this.scene = null;
+                this.camera = null;
+                this.renderer = null;
+                this.world = null;
+                this.diceMeshes = [];
+                this.diceBodies = [];
+                this.diceTextures = [];
+                
                 this.init();
             }
 
             init() {
-                this.setupPhysics();
+                this.init3D();
                 this.renderAll();
                 this.setupColorPicker();
                 this.setupKeyboardShortcuts();
+                this.animate();
             }
 
-            setupPhysics() {
-                const { Engine, World, Bodies, Runner } = Matter;
-                
-                // 1. Setup Canvas
+            /* =========================================
+               3D ENGINE (THREE.JS + CANNON.JS)
+            ========================================= */
+            init3D() {
                 const tray = document.getElementById('tray');
-                this.width = tray.clientWidth || 800; // Fallback
-                this.height = tray.clientHeight || 400;
+                const width = tray.clientWidth;
+                const height = tray.clientHeight;
 
-                this.canvas = document.createElement('canvas');
-                this.canvas.width = this.width;
-                this.canvas.height = this.height;
-                tray.innerHTML = ''; // Clear previous
-                tray.appendChild(this.canvas);
-                this.ctx = this.canvas.getContext('2d');
+                // 1. SCENE
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x0f172a); // Dark Blue Slate
 
-                // 2. Setup Matter JS Engine
-                this.engine = Engine.create();
+                // 2. CAMERA
+                this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
+                this.camera.position.set(0, 18, 12); // High angle view
+                this.camera.lookAt(0, 0, 0);
+
+                // 3. RENDERER
+                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                this.renderer.setSize(width, height);
+                this.renderer.shadowMap.enabled = true;
+                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                tray.appendChild(this.renderer.domElement);
+
+                // 4. LIGHTS
+                const ambient = new THREE.AmbientLight(0xffffff, 0.4);
+                this.scene.add(ambient);
+
+                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                dirLight.position.set(10, 20, 10);
+                dirLight.castShadow = true;
+                dirLight.shadow.mapSize.width = 2048;
+                dirLight.shadow.mapSize.height = 2048;
+                this.scene.add(dirLight);
                 
-                // TOP DOWN PHYSICS SETTINGS
-                this.engine.gravity.y = 0; // No falling
-                this.engine.gravity.x = 0;
+                const spotLight = new THREE.SpotLight(0x6366f1, 0.8);
+                spotLight.position.set(-10, 20, -5);
+                spotLight.lookAt(0,0,0);
+                this.scene.add(spotLight);
 
-                // 3. Create Walls (Invisible) with HIGH FRICTION
-                const wallOptions = { 
-                    isStatic: true, 
-                    restitution: 0.8, 
-                    friction: 0.5 // High friction allows dice to spin off walls
-                };
+                // 5. PHYSICS WORLD
+                this.world = new CANNON.World();
+                this.world.gravity.set(0, -90, 0); // INCREASED GRAVITY (Was -25)
+                this.world.broadphase = new CANNON.NaiveBroadphase();
+                this.world.solver.iterations = 20;
+
+                // Materials
+                const floorMat = new CANNON.Material();
+                const diceMat = new CANNON.Material();
+                const wallMat = new CANNON.Material();
                 
-                const walls = [
-                    Bodies.rectangle(this.width/2, -50, this.width, 100, wallOptions), // Top
-                    Bodies.rectangle(this.width/2, this.height + 50, this.width, 100, wallOptions), // Bottom
-                    Bodies.rectangle(-50, this.height/2, 100, this.height, wallOptions), // Left
-                    Bodies.rectangle(this.width + 50, this.height/2, 100, this.height, wallOptions) // Right
-                ];
-                World.add(this.engine.world, walls);
-
-                // 4. Custom Render Loop
-                const animate = () => {
-                    window.requestAnimationFrame(animate);
-                    
-                    // Step Physics
-                    Engine.update(this.engine, 1000 / 60);
-
-                    // Clear Canvas
-                    this.ctx.clearRect(0, 0, this.width, this.height);
-
-                    // Draw Dice
-                    this.diceBodies.forEach(body => {
-                        if (body) this.drawDie(this.ctx, body);
-                    });
-                };
-
-                animate();
-            }
-
-            drawDie(ctx, body) {
-                const size = 60;
-                const radius = 10;
-                const dotSize = 6;
-                const speed = body.speed;
-                const angularSpeed = Math.abs(body.angularVelocity);
+                // ADJUSTED FRICTION AND RESTITUTION (BOUNCINESS)
+                const floorDiceContact = new CANNON.ContactMaterial(floorMat, diceMat, { friction: 0.9, restitution: 0.4 });
+                const wallDiceContact = new CANNON.ContactMaterial(wallMat, diceMat, { friction: 0.0, restitution: 0.6 });
+                const diceDiceContact = new CANNON.ContactMaterial(diceMat, diceMat, { friction: 0.3, restitution: 0.5 });
                 
-                ctx.save();
-                ctx.translate(body.position.x, body.position.y);
-                ctx.rotate(body.angle);
-                
-                // Dynamic Shadow (Moves away when fast to simulate hopping)
-                const shadowOffset = Math.min(10, 5 + speed * 1.5);
-                ctx.shadowColor = "rgba(0,0,0,0.3)";
-                ctx.shadowBlur = 10 + speed * 2;
-                ctx.shadowOffsetX = 0;
-                ctx.shadowOffsetY = shadowOffset;
+                this.world.addContactMaterial(floorDiceContact);
+                this.world.addContactMaterial(wallDiceContact);
+                this.world.addContactMaterial(diceDiceContact);
 
-                // --- RENDERING STATES ---
-                if (speed > 4) {
-                    // STATE 1: HIGH SPEED BLUR
-                    // Don't draw dots. Draw a motion blur effect.
-                    ctx.fillStyle = "#ffffff";
-                    
-                    // Main body
-                    this.drawRoundedRect(ctx, -size/2, -size/2, size, size, radius);
-                    ctx.fill();
+                // 6. FLOOR
+                const floorBody = new CANNON.Body({ mass: 0, material: floorMat });
+                floorBody.addShape(new CANNON.Plane());
+                floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
+                this.world.addBody(floorBody);
 
-                    // Draw "blur lines" instead of dots to look like spinning face
-                    ctx.strokeStyle = "#e2e8f0";
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(-15, -15); ctx.lineTo(15, 15);
-                    ctx.moveTo(15, -15); ctx.lineTo(-15, 15);
-                    ctx.stroke();
+                // Floor Mesh
+                const floorMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(100, 100),
+                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
+                );
+                floorMesh.rotation.x = -Math.PI / 2;
+                floorMesh.receiveShadow = true;
+                this.scene.add(floorMesh);
 
-                } else if (speed > 0.5) {
-                    // STATE 2: TUMBLING
-                    // Draw face, but scramble values rapidly
-                    const tumbleVal = Math.floor(Math.random() * 6) + 1;
-                    
-                    ctx.fillStyle = "#ffffff";
-                    this.drawRoundedRect(ctx, -size/2, -size/2, size, size, radius);
-                    ctx.fill();
+                // 7. WALLS (Rewritten for better containment)
+                // Left (-X), Right (+X), Top (-Z), Bottom (+Z)
+                this.createWall(-14, 0, 1, 20, wallMat);  // Left
+                this.createWall(14, 0, 1, 20, wallMat);   // Right
+                this.createWall(0, -10, 30, 1, wallMat);  // Top (Far)
+                this.createWall(0, 10, 30, 1, wallMat);   // Bottom (Near)
 
-                    ctx.shadowColor = "transparent";
-                    ctx.fillStyle = "rgba(45, 55, 72, 0.5)"; // Semi-transparent dots
-                    this.drawDots(ctx, tumbleVal, size, dotSize);
-
-                } else {
-                    // STATE 3: SETTLED
-                    // Crisp, clear drawing
-                    ctx.fillStyle = "#ffffff";
-                    this.drawRoundedRect(ctx, -size/2, -size/2, size, size, radius);
-                    ctx.fill();
-
-                    ctx.shadowColor = "transparent";
-                    ctx.fillStyle = "#2d3748"; // Solid dots
-                    this.drawDots(ctx, body.value, size, dotSize);
+                // 8. CREATE 5 DICE
+                this.generateDiceTextures();
+                for(let i=0; i<5; i++) {
+                    this.createDie(i, diceMat);
                 }
 
-                ctx.restore();
-            }
-
-            drawRoundedRect(ctx, x, y, width, height, radius) {
-                ctx.beginPath();
-                ctx.moveTo(x + radius, y);
-                ctx.lineTo(x + width - radius, y);
-                ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-                ctx.lineTo(x + width, y + height - radius);
-                ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-                ctx.lineTo(x + radius, y + height);
-                ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-                ctx.lineTo(x, y + radius);
-                ctx.quadraticCurveTo(x, y, x + radius, y);
-                ctx.closePath();
-            }
-
-            drawDots(ctx, v, size, dotSize) {
-                const q = size / 4;
-                const drawDot = (dx, dy) => {
-                    ctx.beginPath();
-                    ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
-                    ctx.fill();
-                };
-
-                if (v % 2 !== 0) drawDot(0, 0); // 1, 3, 5
-                if (v > 1) { drawDot(-q, -q); drawDot(q, q); } // 2+
-                if (v > 3) { drawDot(q, -q); drawDot(-q, q); } // 4+
-                if (v === 6) { drawDot(-q, 0); drawDot(q, 0); } // 6
-            }
-
-            createDie(value, index) {
-                const { Bodies } = Matter;
-                const size = 60;
-                
-                // Center Spawn
-                const startX = this.width / 2 + (Math.random() * 40 - 20);
-                const startY = this.height / 2 + (Math.random() * 40 - 20);
-
-                const die = Bodies.rectangle(startX, startY, size, size, {
-                    restitution: 0.6, // Less bouncy, more solid
-                    friction: 0.1,    // Grip the table!
-                    frictionAir: 0.02, // Slide well but eventually stop
-                    density: 0.002,
-                    angle: Math.random() * Math.PI * 2,
-                    value: value 
+                // Resize Listener
+                window.addEventListener('resize', () => {
+                    const w = tray.clientWidth;
+                    const h = tray.clientHeight;
+                    this.renderer.setSize(w, h);
+                    this.camera.aspect = w / h;
+                    this.camera.updateProjectionMatrix();
                 });
-                die.value = value;
-                return die;
             }
 
+            createWall(x, z, width, depth, mat) {
+                const height = 10;
+                const body = new CANNON.Body({ mass: 0, material: mat });
+                // Cannon Box takes half-extents
+                body.addShape(new CANNON.Box(new CANNON.Vec3(width/2, height/2, depth/2)));
+                body.position.set(x, height/2, z);
+                this.world.addBody(body);
+            }
+
+            generateDiceTextures() {
+                // Create 6 textures for faces 1-6 using Canvas
+                const size = 256;
+                const dotSize = 25;
+                const positions = [
+                    [], // 0 placeholder
+                    [[0.5, 0.5]], // 1
+                    [[0.2, 0.2], [0.8, 0.8]], // 2
+                    [[0.2, 0.2], [0.5, 0.5], [0.8, 0.8]], // 3
+                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8]], // 4
+                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8], [0.5, 0.5]], // 5
+                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8], [0.2, 0.5], [0.8, 0.5]] // 6
+                ];
+
+                for(let i=1; i<=6; i++) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+                    const ctx = canvas.getContext('2d');
+                    
+                    // Background
+                    ctx.fillStyle = "#ffffff";
+                    ctx.fillRect(0, 0, size, size);
+                    
+                    // Border (inset)
+                    ctx.strokeStyle = "#e2e8f0";
+                    ctx.lineWidth = 10;
+                    ctx.strokeRect(0, 0, size, size);
+
+                    // Dots
+                    ctx.fillStyle = "#1e293b";
+                    positions[i].forEach(pos => {
+                        ctx.beginPath();
+                        ctx.arc(pos[0]*size, pos[1]*size, dotSize, 0, Math.PI*2);
+                        ctx.fill();
+                    });
+
+                    const tex = new THREE.CanvasTexture(canvas);
+                    this.diceTextures.push(tex);
+                }
+            }
+
+            createDie(index, material) {
+                // PHYSICS BODY
+                const size = 1.2;
+                const shape = new CANNON.Box(new CANNON.Vec3(size/2, size/2, size/2));
+                // Added Damping to stop infinite spinning/sliding
+                const body = new CANNON.Body({ 
+                    mass: 1, 
+                    material: material,
+                    linearDamping: 0.1,  // Air resistance
+                    angularDamping: 0.1  // Spin resistance
+                });
+                body.addShape(shape);
+                // Initial random position in air
+                body.position.set((index-2)*1.5, 5 + index, 0); 
+                body.sleep(); // Start asleep
+                this.world.addBody(body);
+                this.diceBodies.push(body);
+
+                // VISUAL MESH
+                // Material Mapping for BoxGeometry: Right(x+), Left(x-), Top(y+), Bottom(y-), Front(z+), Back(z-)
+                // Standard Dice: Top(2), Bottom(5), Right(1), Left(6), Front(3), Back(4)
+                // Wait... standard opposite sides = 7.
+                // Let's explicitly map our textures indices (0-5 in array, which are faces 1-6)
+                
+                // Texture Array Index: 0=Face1, 1=Face2 ... 5=Face6
+                // Map: Right=1, Left=6, Top=2, Bottom=5, Front=3, Back=4
+                const matArray = [
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[0] }), // Right: 1
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[5] }), // Left: 6
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[1] }), // Top: 2
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[4] }), // Bottom: 5
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[2] }), // Front: 3
+                    new THREE.MeshStandardMaterial({ map: this.diceTextures[3] })  // Back: 4
+                ];
+
+                const geo = new THREE.BoxGeometry(size, size, size);
+                const mesh = new THREE.Mesh(geo, matArray);
+                mesh.castShadow = true;
+                this.scene.add(mesh);
+                this.diceMeshes.push(mesh);
+            }
+
+            // MAIN LOOP
+            animate() {
+                requestAnimationFrame(() => this.animate());
+                
+                // Step Physics
+                this.world.step(1/60);
+
+                // Sync Mesh with Body
+                for(let i=0; i<5; i++) {
+                    const b = this.diceBodies[i];
+                    const m = this.diceMeshes[i];
+                    m.position.copy(b.position);
+                    m.quaternion.copy(b.quaternion);
+                }
+
+                // Dice Value Detection (Continuous check if speed is low)
+                if (this.isRolling) {
+                    let allStopped = true;
+                    for(let i=0; i<5; i++) {
+                        if (!this.held[i]) {
+                            const v = this.diceBodies[i].velocity.length();
+                            const a = this.diceBodies[i].angularVelocity.length();
+                            if (v > 0.1 || a > 0.1) {
+                                allStopped = false;
+                            }
+                        }
+                    }
+                    
+                    if (allStopped) {
+                        this.isRolling = false;
+                        this.updateDiceValuesFromPhysics();
+                        this.updateRack();
+                        document.getElementById('rollBtn').disabled = this.rolls >= 3;
+                        this.playSound('click'); // Click sound when settled
+                    }
+                }
+
+                this.renderer.render(this.scene, this.camera);
+            }
+
+            // Detect face facing UP (0, 1, 0)
+            updateDiceValuesFromPhysics() {
+                const directions = [
+                    new THREE.Vector3(1, 0, 0),  // Right (Face 1)
+                    new THREE.Vector3(-1, 0, 0), // Left (Face 6)
+                    new THREE.Vector3(0, 1, 0),  // Top (Face 2)
+                    new THREE.Vector3(0, -1, 0), // Bottom (Face 5)
+                    new THREE.Vector3(0, 0, 1),  // Front (Face 3)
+                    new THREE.Vector3(0, 0, -1)  // Back (Face 4)
+                ];
+                const faceValues = [1, 6, 2, 5, 3, 4];
+
+                for(let i=0; i<5; i++) {
+                    const body = this.diceBodies[i];
+                    // Create quaternion from physics body
+                    const q = new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
+                    
+                    // Transform local direction vectors into world space
+                    let maxDot = -Infinity;
+                    let bestFaceIndex = 0;
+
+                    directions.forEach((dir, idx) => {
+                        const worldDir = dir.clone().applyQuaternion(q);
+                        // Dot product with World UP (0,1,0)
+                        const dot = worldDir.y; 
+                        if (dot > maxDot) {
+                            maxDot = dot;
+                            bestFaceIndex = idx;
+                        }
+                    });
+
+                    this.diceValues[i] = faceValues[bestFaceIndex];
+                }
+            }
+
+            /* =========================================
+               GAME LOGIC
+            ========================================= */
             roll() {
-                if (this.rolls >= 3 || this.isRolling || this.isScorecardOnly) return;
+                if (this.rolls >= 3 || this.isRolling) return;
                 
                 this.playSound('roll');
                 this.isRolling = true;
                 this.rolls++;
+                document.getElementById('rollCounter').textContent = `ROLL ${this.rolls} / 3`;
 
-                const { World } = Matter;
-                
-                // Clear old dice
+                // Physics Impulse
                 this.diceBodies.forEach((body, i) => {
-                    if (body && !this.held[i]) {
-                        World.remove(this.engine.world, body);
-                        this.diceBodies[i] = null;
+                    if (!this.held[i]) {
+                        body.wakeUp();
+                        // Reset Position High Up (Centered to avoid clipping walls)
+                        body.position.set(
+                            (Math.random() - 0.5) * 5, 
+                            10 + Math.random() * 4, 
+                            (Math.random() - 0.5) * 5
+                        );
+                        // Random Rotation
+                        body.quaternion.setFromEuler(
+                            Math.random()*Math.PI*2,
+                            Math.random()*Math.PI*2,
+                            Math.random()*Math.PI*2
+                        );
+                        // Apply Violence (Increased force for heavier gravity)
+                        body.velocity.set(
+                            (Math.random() - 0.5) * 20,
+                            Math.random() * 5, // Less upward pop, just let them drop
+                            (Math.random() - 0.5) * 20
+                        );
+                        body.angularVelocity.set(
+                            (Math.random() - 0.5) * 30,
+                            (Math.random() - 0.5) * 30,
+                            (Math.random() - 0.5) * 30
+                        );
                     }
                 });
-
-                // Create and throw new dice
-                this.dice = this.dice.map((v, i) => {
-                    if (this.held[i]) return v;
-                    
-                    const newVal = Math.floor(Math.random() * 6) + 1;
-                    const die = this.createDie(newVal, i);
-                    World.add(this.engine.world, die);
-                    this.diceBodies[i] = die;
-
-                    // FORCE + SPIN
-                    // Throw outward from center in random direction
-                    const angle = Math.random() * Math.PI * 2;
-                    const force = 0.04 + Math.random() * 0.02; // Stronger throw
-                    
-                    Matter.Body.applyForce(die, die.position, {
-                        x: Math.cos(angle) * force,
-                        y: Math.sin(angle) * force
-                    });
-                    
-                    // High spin for tumble effect
-                    Matter.Body.setAngularVelocity(die, (Math.random() - 0.5) * 1.0);
-
-                    return newVal;
-                });
-
-                // Wait for settle
-                setTimeout(() => {
-                    this.isRolling = false;
-                    this.updateRack();
-                    document.getElementById('rollCounter').textContent = `ROLL ${this.rolls} / 3`;
-                    if (this.rolls === 3) document.getElementById('rollBtn').disabled = true;
-                }, 2000);
             }
 
             updateRack() {
-                this.dice.forEach((v, i) => {
-                    document.getElementById(`v-${i}`).textContent = v || '-';
+                this.diceValues.forEach((v, i) => {
+                    const el = document.getElementById(`gfx-${i}`);
+                    el.className = `slot-die-face d${v}`;
                 });
             }
 
@@ -603,10 +773,10 @@
                             const suggestion = this.rolls > 0 && score === undefined ? this.calcLogic(rule.id) : null;
                             html += `<td><div class="score-cell">
                                 <input class="score-input" type="number" value="${score ?? ''}" 
-                                    ${this.isScorecardOnly ? '' : 'readonly'} ${score !== undefined ? 'disabled' : ''}
-                                    onclick="${!this.isScorecardOnly ? `game.scoreMove(${pIdx}, '${rule.id}')` : ''}"
+                                    readonly ${score !== undefined ? 'disabled' : ''}
+                                    onclick="game.scoreMove(${pIdx}, '${rule.id}')"
                                     onchange="game.manualEntry(${pIdx}, '${rule.id}', this.value)">
-                                ${suggestion !== null ? `<div class="score-suggestion">+${suggestion}</div>` : ''}
+                                ${suggestion !== null ? `<div class="score-suggestion" onclick="game.scoreMove(${pIdx}, '${rule.id}')">+${suggestion}</div>` : ''}
                             </div></td>`;
                         }
                     });
@@ -617,7 +787,7 @@
 
             // Logic Helpers
             calcLogic(id) {
-                const d = this.dice.filter(x => x > 0);
+                const d = this.diceValues;
                 if (!d.length) return 0;
                 const sum = d.reduce((a, b) => a + b, 0);
                 const counts = {}; d.forEach(x => counts[x] = (counts[x] || 0) + 1);
@@ -664,13 +834,18 @@
             resetDice() {
                 this.rolls = 0;
                 this.held.fill(false);
-                this.dice.fill(0);
-                this.diceBodies.forEach(b => { if(b) Matter.World.remove(this.engine.world, b); });
-                this.diceBodies = [];
                 document.getElementById('rollBtn').disabled = false;
                 document.getElementById('rollCounter').textContent = 'ROLL 0 / 3';
-                this.updateRack();
                 document.querySelectorAll('.slot').forEach(s => s.classList.remove('held'));
+                
+                // Reset Dice Physics positions nicely
+                this.diceBodies.forEach((b, i) => {
+                    b.wakeUp();
+                    b.velocity.set(0,0,0);
+                    b.angularVelocity.set(0,0,0);
+                    b.position.set((i-2)*1.5, 1, 0);
+                    b.quaternion.set(0,0,0,1);
+                });
             }
 
             manualEntry(pIdx, id, val) {
@@ -728,12 +903,6 @@
             }
             openColorPicker(i) { this.currentColorPickerPlayer = i; document.getElementById('colorModal').classList.add('active'); }
             closeColorModal() { document.getElementById('colorModal').classList.remove('active'); }
-            toggleMode() {
-                this.isScorecardOnly = !this.isScorecardOnly;
-                document.getElementById('gameArea').style.display = this.isScorecardOnly ? 'none' : 'block';
-                document.getElementById('modeBtn').textContent = this.isScorecardOnly ? '🎮 Enable Dice' : '📋 Scorecard Only';
-                this.renderRows();
-            }
             toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
             
             updatePlayerName(idx, val) { this.players[idx].name = val || `Player ${idx+1}`; }
@@ -744,9 +913,33 @@
                     const osc = ctx.createOscillator();
                     const g = ctx.createGain();
                     osc.connect(g); g.connect(ctx.destination);
-                    if (type === 'roll') { osc.frequency.value = 200; g.gain.value = 0.1; osc.start(); osc.stop(ctx.currentTime + 0.1); }
-                    if (type === 'click') { osc.frequency.value = 800; g.gain.value = 0.05; osc.start(); osc.stop(ctx.currentTime + 0.05); }
-                    if (type === 'score') { osc.frequency.value = 600; g.gain.value = 0.1; osc.start(); osc.stop(ctx.currentTime + 0.15); }
+                    
+                    if (type === 'roll') {
+                        // Rumble sound
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(100, ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.5);
+                        g.gain.setValueAtTime(0.1, ctx.currentTime);
+                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                        osc.start(); osc.stop(ctx.currentTime + 0.5);
+                    }
+                    if (type === 'click') {
+                        // High click
+                        osc.frequency.value = 800; g.gain.value = 0.05; osc.start(); osc.stop(ctx.currentTime + 0.05);
+                    }
+                    if (type === 'score') {
+                        // Nice chord or ding
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(440, ctx.currentTime);
+                        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+                        g.gain.setValueAtTime(0.1, ctx.currentTime);
+                        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
+                        osc.start(); osc.stop(ctx.currentTime + 0.3);
+                    }
+                    if (type === 'yahtzee') {
+                        // Fanfare
+                        // (Simplified for this snippet)
+                    }
                 } catch(e) {}
             }
 
