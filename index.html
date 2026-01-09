@@ -3,959 +3,682 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Yahtzee Elite 3D - Real Physics</title>
+    <title>Yahtzee Elite 3D Pro | Beta Build</title>
     
-    <!-- 3D & Physics Engines -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
         :root {
-            --bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            --bg: #f8fafc;
             --surface: #ffffff;
-            --text: #2d3748;
+            --surface-2: #f1f5f9;
+            --text: #0f172a;
+            --text-muted: #64748b;
             --primary: #6366f1;
-            --secondary: #a855f7;
-            --success: #22c55e;
+            --primary-light: rgba(99, 102, 241, 0.1);
+            --accent: #10b981;
             --danger: #ef4444;
             --border: #e2e8f0;
-            --shadow: rgba(0,0,0,0.2);
-            --tray-bg: #0f172a; 
-            
-            /* Player Colors */
-            --c1: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
-            --c2: linear-gradient(135deg, #f472b6 0%, #db2777 100%);
-            --c3: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
-            --c4: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
-            --c5: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            --c6: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
-            --c7: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
-            --c8: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            --radius: 20px;
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            --tray-bg: #1e293b;
         }
 
         [data-theme="dark"] {
-            --surface: #1e293b;
+            --bg: #020617;
+            --surface: #0f172a;
+            --surface-2: #1e293b;
             --text: #f8fafc;
+            --text-muted: #94a3b8;
             --border: #334155;
-            --shadow: rgba(0,0,0,0.4);
+            --primary-light: rgba(99, 102, 241, 0.2);
+            --tray-bg: #000000;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body { 
-            font-family: 'Fredoka', 'Inter', system-ui, sans-serif;
+            font-family: 'Plus Jakarta Sans', sans-serif;
             background: var(--bg);
             color: var(--text);
-            min-height: 100vh;
-            padding: 20px;
+            transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             overflow-x: hidden;
+            min-height: 100vh;
         }
 
-        /* Header */
-        .header {
-            max-width: 1400px;
-            margin: 0 auto 30px;
-            text-align: center;
-        }
-        
-        .header h1 {
-            font-size: 3rem;
-            font-weight: 700;
-            color: white;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            margin-bottom: 20px;
+        .app-shell {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            gap: 32px;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Controls */
-        .controls {
+        body.scorecard-focused .app-shell {
+            grid-template-columns: 1fr;
+            max-width: 900px;
+        }
+
+        header {
+            grid-column: 1 / -1;
             display: flex;
-            justify-content: center;
-            gap: 12px;
-            flex-wrap: wrap;
-            margin-bottom: 30px;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 12px;
         }
 
+        .logo { font-weight: 800; font-size: 1.6rem; letter-spacing: -1px; display: flex; align-items: center; gap: 10px; }
+
+        .toolbar { display: flex; gap: 12px; }
         .btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            border: none;
-            background: white;
-            color: #1e293b;
-            font-weight: 600;
-            font-size: 14px;
+            padding: 12px 20px;
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px var(--shadow);
+            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            font-size: 0.9rem;
         }
-        
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--shadow); }
-        .btn:active { transform: translateY(0); }
-        
-        .btn-primary { 
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); 
-            color: white; 
-            padding: 16px 48px; 
-            font-size: 20px; 
-            letter-spacing: 1px;
-        }
-        .btn-danger { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); color: white; }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: grayscale(1); }
+        .btn:hover { background: var(--surface-2); transform: translateY(-1px); border-color: var(--text-muted); }
+        .btn-primary { background: var(--primary); color: white; border: none; }
+        .btn-primary:hover { background: #4f46e5; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; }
 
-        /* Physics Tray */
-        .tray-container {
-            max-width: 900px;
-            margin: 0 auto 30px;
-            background: #1e293b;
-            border-radius: 24px;
-            padding: 10px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
-            border: 4px solid #334155;
-            position: relative;
-        }
+        .main-stage { display: flex; flex-direction: column; gap: 24px; }
+        body.scorecard-focused .main-stage { display: none; }
 
-        #tray {
+        .tray-viewport {
             width: 100%;
-            height: 500px;
+            aspect-ratio: 16 / 10;
             background: var(--tray-bg);
-            border-radius: 16px;
+            border-radius: 28px;
             overflow: hidden;
             position: relative;
+            box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
         }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-            outline: none;
-        }
+        #canvas-3d { width: 100%; height: 100%; }
 
-        /* Rack */
-        .rack-container {
-            max-width: 900px;
-            margin: 0 auto 30px;
+        .dice-controls {
             background: var(--surface);
-            border-radius: 20px;
-            padding: 20px;
-            box-shadow: 0 10px 40px var(--shadow);
+            padding: 24px;
+            border-radius: 28px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
 
-        .rack-title { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 15px; letter-spacing: 1px; text-transform: uppercase; font-size: 14px; }
-
-        .rack { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
-
-        .slot {
-            width: 90px; height: 110px;
-            background: linear-gradient(145deg, #f1f5f9, #e2e8f0);
-            border: 3px solid var(--border);
-            border-radius: 16px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-        }
-
-        .slot:hover { transform: translateY(-4px); border-color: var(--primary); }
-        
-        .slot.held {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-color: transparent;
-            transform: translateY(-8px);
-            box-shadow: 0 10px 20px rgba(99, 102, 241, 0.4);
-        }
-        .slot.held .slot-value { color: white; }
-        .slot.held .slot-label { opacity: 1; color: white; }
-        
-        /* Dice graphics in slot */
-        .slot-die-face {
-            width: 50px; height: 50px;
-            background: white;
-            border-radius: 10px;
-            display: grid;
-            grid-template-areas: "a . c" "e g f" "d . b";
-            padding: 4px;
-            gap: 2px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .dot { width: 8px; height: 8px; background: #333; border-radius: 50%; display: none; margin: auto;}
-        
-        /* Dot positioning logic */
-        .d1 .dot:nth-child(1) { grid-area: g; display: block; }
-        
-        .d2 .dot:nth-child(1) { grid-area: a; display: block; }
-        .d2 .dot:nth-child(2) { grid-area: b; display: block; }
-        
-        .d3 .dot:nth-child(1) { grid-area: a; display: block; }
-        .d3 .dot:nth-child(2) { grid-area: g; display: block; }
-        .d3 .dot:nth-child(3) { grid-area: b; display: block; }
-
-        .d4 .dot:nth-child(1) { grid-area: a; display: block; }
-        .d4 .dot:nth-child(2) { grid-area: c; display: block; }
-        .d4 .dot:nth-child(3) { grid-area: d; display: block; }
-        .d4 .dot:nth-child(4) { grid-area: b; display: block; }
-
-        .d5 .dot:nth-child(1) { grid-area: a; display: block; }
-        .d5 .dot:nth-child(2) { grid-area: c; display: block; }
-        .d5 .dot:nth-child(3) { grid-area: g; display: block; }
-        .d5 .dot:nth-child(4) { grid-area: d; display: block; }
-        .d5 .dot:nth-child(5) { grid-area: b; display: block; }
-
-        .d6 .dot:nth-child(1) { grid-area: a; display: block; }
-        .d6 .dot:nth-child(2) { grid-area: c; display: block; }
-        .d6 .dot:nth-child(3) { grid-area: e; display: block; }
-        .d6 .dot:nth-child(4) { grid-area: f; display: block; }
-        .d6 .dot:nth-child(5) { grid-area: d; display: block; }
-        .d6 .dot:nth-child(6) { grid-area: b; display: block; }
-
-        .slot-value { font-size: 24px; font-weight: 700; color: var(--text); display: none; } /* Hidden, using graphics */
-        .slot-label { font-size: 11px; font-weight: 700; color: var(--primary); margin-top: 8px; opacity: 0; letter-spacing: 1px; }
-
-        /* Roll Area - CENTERED */
-        .roll-area {
+        .rack { display: flex; gap: 16px; }
+        .die-slot {
+            width: 75px;
+            height: 95px;
+            background: var(--surface-2);
+            border: 2px solid var(--border);
+            border-radius: 18px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 15px;
-            margin-bottom: 40px;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        .die-slot.held {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-12px);
+            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.3);
+        }
+        .die-slot.held .val { color: white; }
+        .die-slot.held .lbl { color: rgba(255,255,255,0.7); }
+        .die-slot .val { font-size: 2rem; font-weight: 800; }
+        .die-slot .lbl { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
 
-        .roll-counter { color: white; font-weight: 700; font-size: 18px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); background: rgba(0,0,0,0.3); padding: 5px 15px; border-radius: 20px; }
-
-        /* Scorecard */
         .scorecard-container {
-            max-width: 1400px;
-            margin: 0 auto;
             background: var(--surface);
-            border-radius: 24px;
-            padding: 30px;
-            box-shadow: 0 20px 60px var(--shadow);
-            overflow-x: auto;
+            border-radius: 28px;
+            padding: 32px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
         }
+
+        .score-scroll { overflow-x: auto; margin: 0 -10px; padding: 10px; }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th, td { padding: 16px; text-align: center; border-bottom: 1px solid var(--border); }
-        th { font-weight: 700; font-size: 14px; color: var(--text); }
         
-        .col-cat { text-align: left; width: 200px; position: sticky; left: 0; background: var(--surface); z-index: 10; font-weight: 700; border-right: 1px solid var(--border); }
-        .col-player { min-width: 140px; cursor: grab; }
+        .active-turn-col { background: var(--primary-light) !important; }
 
-        .player-header { border-radius: 12px; padding: 16px; color: white; position: relative; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .player-name-input { border: none; background: rgba(255,255,255,0.2); color: white; font-weight: 700; text-align: center; width: 100%; padding: 8px; border-radius: 8px; backdrop-filter: blur(5px); }
-        .player-controls { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+        th, td { padding: 14px 10px; border-bottom: 1px solid var(--border); }
+        th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; }
 
-        .score-input { width: 100%; border: none; text-align: center; font-size: 20px; font-weight: 700; outline: none; background: transparent; color: var(--text); }
-        .score-input:hover:not([readonly]) { background: rgba(99, 102, 241, 0.1); border-radius: 8px; cursor: pointer; }
-        .score-suggestion { position: absolute; top: 4px; right: 4px; background: var(--success); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .score-cell { position: relative; height: 100%; display: flex; align-items: center; justify-content: center; }
-        
-        .row-shaded td { background: rgba(0,0,0,0.03); }
-        .calculated-score { font-size: 22px; font-weight: 700; color: var(--primary); }
+        .player-header { min-width: 110px; text-align: center; cursor: grab; position: relative; }
+        .player-name-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            text-align: center;
+            font-family: inherit;
+            font-weight: 800;
+            color: var(--text);
+            font-size: 0.95rem;
+            outline: none;
+            padding: 4px;
+            border-radius: 6px;
+        }
+        .player-name-input:focus { background: var(--surface-2); }
+        .remove-player {
+            position: absolute;
+            top: -8px;
+            right: 2px;
+            color: var(--danger);
+            cursor: pointer;
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .player-header:hover .remove-player { opacity: 1; }
 
-        /* Utilities */
-        .color-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-        .color-modal.active { opacity: 1; pointer-events: all; }
-        .color-modal-content { background: var(--surface); padding: 30px; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); }
-        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
-        .color-option { width: 60px; height: 60px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .color-option:hover { transform: scale(1.1); }
-        
-        .info { display: inline-flex; width: 18px; height: 18px; background: var(--border); color: var(--text); border-radius: 50%; font-size: 11px; align-items: center; justify-content: center; cursor: help; margin-left: 8px; position: relative; }
-        .tip { position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background: #1e293b; color: white; padding: 12px; border-radius: 8px; width: max-content; max-width: 200px; font-weight: 400; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); font-size: 12px; line-height: 1.4; }
-        .info:hover .tip { opacity: 1; }
-        
-        @media (max-width: 768px) {
-            .header h1 { font-size: 2rem; }
-            .rack { gap: 10px; }
-            .slot { width: 60px; height: 80px; }
-            .slot-die-face { width: 35px; height: 35px; padding: 2px; }
-            .dot { width: 6px; height: 6px; }
-            #tray { height: 350px; }
+        .cat-row:hover { background: var(--surface-2); }
+        .cat-info { font-weight: 700; font-size: 0.9rem; cursor: help; display: flex; align-items: center; gap: 8px; }
+        .cat-info .tip-icon { font-size: 0.65rem; color: var(--text-muted); border: 1.5px solid var(--border); border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center; }
+
+        .score-cell {
+            text-align: center;
+            font-weight: 800;
+            cursor: pointer;
+            height: 48px;
+            transition: all 0.2s;
+            border-radius: 10px;
+        }
+        .score-cell.locked { cursor: default; }
+        .score-cell.hint { color: var(--accent); opacity: 0.5; font-size: 0.95rem; }
+        .score-cell:hover:not(.locked) { background: rgba(16, 185, 129, 0.12); }
+
+        .total-row { background: var(--surface-2); font-weight: 800; color: var(--primary); }
+
+        .tooltip {
+            position: absolute;
+            background: #0f172a;
+            color: white;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            z-index: 1000;
+            pointer-events: none;
+            max-width: 220px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: none;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 1024px) {
+            .app-shell { grid-template-columns: 1fr; }
         }
     </style>
 </head>
-<body data-theme="light">
-    <div class="header">
-        <h1>🎲 Yahtzee Elite 3D</h1>
-        <div class="controls">
-            <button class="btn" onclick="game.addPlayer()">👤 Add Player</button>
+<body>
+
+<div class="app-shell">
+    <header>
+        <div class="logo"><span>🎲</span> YAHTZEE ELITE PRO</div>
+        <div class="toolbar">
+            <button class="btn" onclick="game.toggleFocusMode()" id="focusBtn">📋 Scorecard Only</button>
+            <button class="btn" onclick="game.undo()" id="undoBtn" disabled>↩ Undo</button>
             <button class="btn" onclick="game.toggleTheme()">🌓 Theme</button>
-            <button class="btn" onclick="game.resetDice()">🔄 Clear Tray</button>
-            <button class="btn btn-danger" onclick="game.fullReset()">♻️ Full Reset</button>
+            <button class="btn" style="color: var(--danger)" onclick="game.fullReset()">♻ Reset</button>
         </div>
-    </div>
+    </header>
 
-    <div id="gameArea">
-        <div class="tray-container">
-            <div id="tray"></div>
+    <main class="main-stage">
+        <div class="tray-viewport">
+            <div id="canvas-3d"></div>
         </div>
 
-        <div class="rack-container">
-            <div class="rack-title">Dice Rack - Click to Hold</div>
-            <div class="rack">
-                <!-- Slot 1 -->
-                <div class="slot" onclick="game.toggleHold(0)" id="slot-0">
-                    <div class="slot-die-face d1" id="gfx-0">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                    <div class="slot-label">LOCKED</div>
-                </div>
-                <!-- Slot 2 -->
-                <div class="slot" onclick="game.toggleHold(1)" id="slot-1">
-                    <div class="slot-die-face d1" id="gfx-1">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                    <div class="slot-label">LOCKED</div>
-                </div>
-                <!-- Slot 3 -->
-                <div class="slot" onclick="game.toggleHold(2)" id="slot-2">
-                    <div class="slot-die-face d1" id="gfx-2">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                    <div class="slot-label">LOCKED</div>
-                </div>
-                <!-- Slot 4 -->
-                <div class="slot" onclick="game.toggleHold(3)" id="slot-3">
-                    <div class="slot-die-face d1" id="gfx-3">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                    <div class="slot-label">LOCKED</div>
-                </div>
-                <!-- Slot 5 -->
-                <div class="slot" onclick="game.toggleHold(4)" id="slot-4">
-                    <div class="slot-die-face d1" id="gfx-4">
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                    </div>
-                    <div class="slot-label">LOCKED</div>
-                </div>
+        <div class="dice-controls">
+            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; padding: 0 10px;">
+                <span id="rollStatus" style="font-weight: 800; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Roll 0 / 3</span>
+                <button class="btn" onclick="game.clearTray()">🔄 Clear Tray</button>
             </div>
-        </div>
+            
+            <div class="rack" id="diceRack">
+                </div>
 
-        <div class="roll-area">
-            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()">
-                🎲 ROLL DICE
+            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()" style="padding: 18px 80px; font-size: 1.2rem; letter-spacing: 1px;">
+                ROLL DICE
             </button>
-            <div class="roll-counter" id="rollCounter">ROLL 0 / 3</div>
         </div>
-    </div>
+    </main>
 
-    <div class="scorecard-container">
-        <table id="scoreTable">
-            <thead id="head"></thead>
-            <tbody id="rows"></tbody>
-        </table>
-    </div>
-
-    <div class="color-modal" id="colorModal" onclick="game.closeColorModal()">
-        <div class="color-modal-content" onclick="event.stopPropagation()">
-            <h3 style="text-align: center; margin-bottom: 20px; color: var(--text);">Choose Color</h3>
-            <div class="color-grid" id="colorGrid"></div>
+    <aside class="scorecard-container">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <button class="btn" onclick="game.prevTurn()">◀</button>
+                <div style="text-align: center; min-width: 120px;">
+                    <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Current Turn</div>
+                    <h2 id="activePlayerDisplay" style="font-size: 1.1rem; font-weight: 800;">Player 1</h2>
+                </div>
+                <button class="btn" onclick="game.nextTurn()">▶</button>
+            </div>
+            <button class="btn btn-primary" onclick="game.addPlayer()">+ Player</button>
         </div>
-    </div>
 
-    <script>
-        const COLORS = ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c7', '--c8'];
-        const RULES = [
-            { id: '1s', name: 'Ones', tip: 'Sum of all 1s' },
-            { id: '2s', name: 'Twos', tip: 'Sum of all 2s' },
-            { id: '3s', name: 'Threes', tip: 'Sum of all 3s' },
-            { id: '4s', name: 'Fours', tip: 'Sum of all 4s' },
-            { id: '5s', name: 'Fives', tip: 'Sum of all 5s' },
-            { id: '6s', name: 'Sixes', tip: 'Sum of all 6s' },
-            { id: 'uSum', name: 'Upper Total', tip: 'Sum of upper section', shaded: true, calc: true },
-            { id: 'bonus', name: 'Bonus (+35)', tip: '35 points if upper total ≥ 63', shaded: true, calc: true },
-            { id: 'tk', name: '3 of a Kind', tip: 'Sum of all dice if 3+ match' },
-            { id: 'fk', name: '4 of a Kind', tip: 'Sum of all dice if 4+ match' },
-            { id: 'fh', name: 'Full House', tip: '25 points for 3 + 2' },
-            { id: 'ss', name: 'Small Straight', tip: '30 points for 4 in sequence' },
-            { id: 'ls', name: 'Large Straight', tip: '40 points for 5 in sequence' },
-            { id: 'yz', name: 'YAHTZEE', tip: '50 points for 5 of a kind' },
-            { id: 'ch', name: 'Chance', tip: 'Sum of all dice' },
-            { id: 'grand', name: '🏆 GRAND TOTAL', tip: 'Final score', shaded: true, calc: true }
-        ];
+        <div class="score-scroll">
+            <table id="scoreTable">
+                <thead>
+                    <tr id="playerHeaderRow">
+                        <th>Category</th>
+                        </tr>
+                </thead>
+                <tbody id="scoreTableBody">
+                    </tbody>
+            </table>
+        </div>
+    </aside>
+</div>
 
-        class YahtzeeElite {
-            constructor() {
-                this.players = [{ name: 'Player 1', color: '--c1', scores: {} }];
-                this.diceValues = [1, 1, 1, 1, 1]; // Logical values
-                this.held = [false, false, false, false, false];
-                this.rolls = 0;
-                this.isRolling = false;
-                this.currentColorPickerPlayer = null;
-                
-                // 3D Variables
-                this.scene = null;
-                this.camera = null;
-                this.renderer = null;
-                this.world = null;
-                this.diceMeshes = [];
-                this.diceBodies = [];
-                this.diceTextures = [];
-                
-                this.init();
-            }
+<div class="tooltip" id="globalTooltip"></div>
 
-            init() {
-                this.init3D();
-                this.renderAll();
-                this.setupColorPicker();
-                this.setupKeyboardShortcuts();
-                this.animate();
-            }
-
-            /* =========================================
-               3D ENGINE (THREE.JS + CANNON.JS)
-            ========================================= */
-            init3D() {
-                const tray = document.getElementById('tray');
-                const width = tray.clientWidth;
-                const height = tray.clientHeight;
-
-                // 1. SCENE
-                this.scene = new THREE.Scene();
-                this.scene.background = new THREE.Color(0x0f172a); // Dark Blue Slate
-
-                // 2. CAMERA
-                this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100);
-                this.camera.position.set(0, 18, 12); // High angle view
-                this.camera.lookAt(0, 0, 0);
-
-                // 3. RENDERER
-                this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-                this.renderer.setSize(width, height);
-                this.renderer.shadowMap.enabled = true;
-                this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                tray.appendChild(this.renderer.domElement);
-
-                // 4. LIGHTS
-                const ambient = new THREE.AmbientLight(0xffffff, 0.4);
-                this.scene.add(ambient);
-
-                const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
-                dirLight.position.set(10, 20, 10);
-                dirLight.castShadow = true;
-                dirLight.shadow.mapSize.width = 2048;
-                dirLight.shadow.mapSize.height = 2048;
-                this.scene.add(dirLight);
-                
-                const spotLight = new THREE.SpotLight(0x6366f1, 0.8);
-                spotLight.position.set(-10, 20, -5);
-                spotLight.lookAt(0,0,0);
-                this.scene.add(spotLight);
-
-                // 5. PHYSICS WORLD
-                this.world = new CANNON.World();
-                this.world.gravity.set(0, -90, 0); // INCREASED GRAVITY (Was -25)
-                this.world.broadphase = new CANNON.NaiveBroadphase();
-                this.world.solver.iterations = 20;
-
-                // Materials
-                const floorMat = new CANNON.Material();
-                const diceMat = new CANNON.Material();
-                const wallMat = new CANNON.Material();
-                
-                // ADJUSTED FRICTION AND RESTITUTION (BOUNCINESS)
-                const floorDiceContact = new CANNON.ContactMaterial(floorMat, diceMat, { friction: 0.9, restitution: 0.4 });
-                const wallDiceContact = new CANNON.ContactMaterial(wallMat, diceMat, { friction: 0.0, restitution: 0.6 });
-                const diceDiceContact = new CANNON.ContactMaterial(diceMat, diceMat, { friction: 0.3, restitution: 0.5 });
-                
-                this.world.addContactMaterial(floorDiceContact);
-                this.world.addContactMaterial(wallDiceContact);
-                this.world.addContactMaterial(diceDiceContact);
-
-                // 6. FLOOR
-                const floorBody = new CANNON.Body({ mass: 0, material: floorMat });
-                floorBody.addShape(new CANNON.Plane());
-                floorBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
-                this.world.addBody(floorBody);
-
-                // Floor Mesh
-                const floorMesh = new THREE.Mesh(
-                    new THREE.PlaneGeometry(100, 100),
-                    new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
-                );
-                floorMesh.rotation.x = -Math.PI / 2;
-                floorMesh.receiveShadow = true;
-                this.scene.add(floorMesh);
-
-                // 7. WALLS (Rewritten for better containment)
-                // Left (-X), Right (+X), Top (-Z), Bottom (+Z)
-                this.createWall(-14, 0, 1, 20, wallMat);  // Left
-                this.createWall(14, 0, 1, 20, wallMat);   // Right
-                this.createWall(0, -10, 30, 1, wallMat);  // Top (Far)
-                this.createWall(0, 10, 30, 1, wallMat);   // Bottom (Near)
-
-                // 8. CREATE 5 DICE
-                this.generateDiceTextures();
-                for(let i=0; i<5; i++) {
-                    this.createDie(i, diceMat);
-                }
-
-                // Resize Listener
-                window.addEventListener('resize', () => {
-                    const w = tray.clientWidth;
-                    const h = tray.clientHeight;
-                    this.renderer.setSize(w, h);
-                    this.camera.aspect = w / h;
-                    this.camera.updateProjectionMatrix();
-                });
-            }
-
-            createWall(x, z, width, depth, mat) {
-                const height = 10;
-                const body = new CANNON.Body({ mass: 0, material: mat });
-                // Cannon Box takes half-extents
-                body.addShape(new CANNON.Box(new CANNON.Vec3(width/2, height/2, depth/2)));
-                body.position.set(x, height/2, z);
-                this.world.addBody(body);
-            }
-
-            generateDiceTextures() {
-                // Create 6 textures for faces 1-6 using Canvas
-                const size = 256;
-                const dotSize = 25;
-                const positions = [
-                    [], // 0 placeholder
-                    [[0.5, 0.5]], // 1
-                    [[0.2, 0.2], [0.8, 0.8]], // 2
-                    [[0.2, 0.2], [0.5, 0.5], [0.8, 0.8]], // 3
-                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8]], // 4
-                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8], [0.5, 0.5]], // 5
-                    [[0.2, 0.2], [0.2, 0.8], [0.8, 0.2], [0.8, 0.8], [0.2, 0.5], [0.8, 0.5]] // 6
-                ];
-
-                for(let i=1; i<=6; i++) {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = size;
-                    canvas.height = size;
-                    const ctx = canvas.getContext('2d');
-                    
-                    // Background
-                    ctx.fillStyle = "#ffffff";
-                    ctx.fillRect(0, 0, size, size);
-                    
-                    // Border (inset)
-                    ctx.strokeStyle = "#e2e8f0";
-                    ctx.lineWidth = 10;
-                    ctx.strokeRect(0, 0, size, size);
-
-                    // Dots
-                    ctx.fillStyle = "#1e293b";
-                    positions[i].forEach(pos => {
-                        ctx.beginPath();
-                        ctx.arc(pos[0]*size, pos[1]*size, dotSize, 0, Math.PI*2);
-                        ctx.fill();
-                    });
-
-                    const tex = new THREE.CanvasTexture(canvas);
-                    this.diceTextures.push(tex);
-                }
-            }
-
-            createDie(index, material) {
-                // PHYSICS BODY
-                const size = 1.2;
-                const shape = new CANNON.Box(new CANNON.Vec3(size/2, size/2, size/2));
-                // Added Damping to stop infinite spinning/sliding
-                const body = new CANNON.Body({ 
-                    mass: 1, 
-                    material: material,
-                    linearDamping: 0.1,  // Air resistance
-                    angularDamping: 0.1  // Spin resistance
-                });
-                body.addShape(shape);
-                // Initial random position in air
-                body.position.set((index-2)*1.5, 5 + index, 0); 
-                body.sleep(); // Start asleep
-                this.world.addBody(body);
-                this.diceBodies.push(body);
-
-                // VISUAL MESH
-                // Material Mapping for BoxGeometry: Right(x+), Left(x-), Top(y+), Bottom(y-), Front(z+), Back(z-)
-                // Standard Dice: Top(2), Bottom(5), Right(1), Left(6), Front(3), Back(4)
-                // Wait... standard opposite sides = 7.
-                // Let's explicitly map our textures indices (0-5 in array, which are faces 1-6)
-                
-                // Texture Array Index: 0=Face1, 1=Face2 ... 5=Face6
-                // Map: Right=1, Left=6, Top=2, Bottom=5, Front=3, Back=4
-                const matArray = [
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[0] }), // Right: 1
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[5] }), // Left: 6
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[1] }), // Top: 2
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[4] }), // Bottom: 5
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[2] }), // Front: 3
-                    new THREE.MeshStandardMaterial({ map: this.diceTextures[3] })  // Back: 4
-                ];
-
-                const geo = new THREE.BoxGeometry(size, size, size);
-                const mesh = new THREE.Mesh(geo, matArray);
-                mesh.castShadow = true;
-                this.scene.add(mesh);
-                this.diceMeshes.push(mesh);
-            }
-
-            // MAIN LOOP
-            animate() {
-                requestAnimationFrame(() => this.animate());
-                
-                // Step Physics
-                this.world.step(1/60);
-
-                // Sync Mesh with Body
-                for(let i=0; i<5; i++) {
-                    const b = this.diceBodies[i];
-                    const m = this.diceMeshes[i];
-                    m.position.copy(b.position);
-                    m.quaternion.copy(b.quaternion);
-                }
-
-                // Dice Value Detection (Continuous check if speed is low)
-                if (this.isRolling) {
-                    let allStopped = true;
-                    for(let i=0; i<5; i++) {
-                        if (!this.held[i]) {
-                            const v = this.diceBodies[i].velocity.length();
-                            const a = this.diceBodies[i].angularVelocity.length();
-                            if (v > 0.1 || a > 0.1) {
-                                allStopped = false;
-                            }
-                        }
-                    }
-                    
-                    if (allStopped) {
-                        this.isRolling = false;
-                        this.updateDiceValuesFromPhysics();
-                        this.updateRack();
-                        document.getElementById('rollBtn').disabled = this.rolls >= 3;
-                        this.playSound('click'); // Click sound when settled
-                    }
-                }
-
-                this.renderer.render(this.scene, this.camera);
-            }
-
-            // Detect face facing UP (0, 1, 0)
-            updateDiceValuesFromPhysics() {
-                const directions = [
-                    new THREE.Vector3(1, 0, 0),  // Right (Face 1)
-                    new THREE.Vector3(-1, 0, 0), // Left (Face 6)
-                    new THREE.Vector3(0, 1, 0),  // Top (Face 2)
-                    new THREE.Vector3(0, -1, 0), // Bottom (Face 5)
-                    new THREE.Vector3(0, 0, 1),  // Front (Face 3)
-                    new THREE.Vector3(0, 0, -1)  // Back (Face 4)
-                ];
-                const faceValues = [1, 6, 2, 5, 3, 4];
-
-                for(let i=0; i<5; i++) {
-                    const body = this.diceBodies[i];
-                    // Create quaternion from physics body
-                    const q = new THREE.Quaternion(body.quaternion.x, body.quaternion.y, body.quaternion.z, body.quaternion.w);
-                    
-                    // Transform local direction vectors into world space
-                    let maxDot = -Infinity;
-                    let bestFaceIndex = 0;
-
-                    directions.forEach((dir, idx) => {
-                        const worldDir = dir.clone().applyQuaternion(q);
-                        // Dot product with World UP (0,1,0)
-                        const dot = worldDir.y; 
-                        if (dot > maxDot) {
-                            maxDot = dot;
-                            bestFaceIndex = idx;
-                        }
-                    });
-
-                    this.diceValues[i] = faceValues[bestFaceIndex];
-                }
-            }
-
-            /* =========================================
-               GAME LOGIC
-            ========================================= */
-            roll() {
-                if (this.rolls >= 3 || this.isRolling) return;
-                
-                this.playSound('roll');
-                this.isRolling = true;
-                this.rolls++;
-                document.getElementById('rollCounter').textContent = `ROLL ${this.rolls} / 3`;
-
-                // Physics Impulse
-                this.diceBodies.forEach((body, i) => {
-                    if (!this.held[i]) {
-                        body.wakeUp();
-                        // Reset Position High Up (Centered to avoid clipping walls)
-                        body.position.set(
-                            (Math.random() - 0.5) * 5, 
-                            10 + Math.random() * 4, 
-                            (Math.random() - 0.5) * 5
-                        );
-                        // Random Rotation
-                        body.quaternion.setFromEuler(
-                            Math.random()*Math.PI*2,
-                            Math.random()*Math.PI*2,
-                            Math.random()*Math.PI*2
-                        );
-                        // Apply Violence (Increased force for heavier gravity)
-                        body.velocity.set(
-                            (Math.random() - 0.5) * 20,
-                            Math.random() * 5, // Less upward pop, just let them drop
-                            (Math.random() - 0.5) * 20
-                        );
-                        body.angularVelocity.set(
-                            (Math.random() - 0.5) * 30,
-                            (Math.random() - 0.5) * 30,
-                            (Math.random() - 0.5) * 30
-                        );
-                    }
-                });
-            }
-
-            updateRack() {
-                this.diceValues.forEach((v, i) => {
-                    const el = document.getElementById(`gfx-${i}`);
-                    el.className = `slot-die-face d${v}`;
-                });
-            }
-
-            toggleHold(i) {
-                if (this.rolls === 0 || this.isRolling) return;
-                this.held[i] = !this.held[i];
-                document.getElementById(`slot-${i}`).classList.toggle('held', this.held[i]);
-                this.playSound('click');
-            }
-
-            // --- UI Rendering (Scorecard, etc) ---
-            renderAll() { this.renderHeaders(); this.renderRows(); }
-
-            renderHeaders() {
-                const head = document.getElementById('head');
-                let html = '<tr><th class="col-cat">Category</th>';
-                this.players.forEach((p, i) => {
-                    html += `
-                        <th class="col-player" draggable="true" data-idx="${i}">
-                            <div class="player-header" style="background: var(${p.color})">
-                                <input class="player-name-input" value="${p.name}" 
-                                    onchange="game.updatePlayerName(${i}, this.value)"
-                                    placeholder="Player ${i + 1}">
-                                <div class="player-controls">
-                                    <div class="color-option" style="width:20px;height:20px;background:white;opacity:0.5" onclick="game.openColorPicker(${i})"></div>
-                                    ${this.players.length > 1 ? `<span onclick="game.removePlayer(${i})" style="cursor:pointer;opacity:0.7">✕</span>` : ''}
-                                </div>
-                            </div>
-                        </th>`;
-                });
-                head.innerHTML = html + '</tr>';
-                this.setupDragAndDrop();
-            }
-
-            renderRows() {
-                const tbody = document.getElementById('rows');
-                tbody.innerHTML = '';
-                RULES.forEach(rule => {
-                    const tr = document.createElement('tr');
-                    if (rule.shaded) tr.classList.add('row-shaded');
-                    let html = `<td class="col-cat">${rule.name}<span class="info">?<div class="tip">${rule.tip}</div></span></td>`;
-                    
-                    this.players.forEach((p, pIdx) => {
-                        const score = p.scores[rule.id];
-                        if (rule.calc) {
-                            html += `<td><div class="calculated-score">${this.calculate(pIdx, rule.id)}</div></td>`;
-                        } else {
-                            const suggestion = this.rolls > 0 && score === undefined ? this.calcLogic(rule.id) : null;
-                            html += `<td><div class="score-cell">
-                                <input class="score-input" type="number" value="${score ?? ''}" 
-                                    readonly ${score !== undefined ? 'disabled' : ''}
-                                    onclick="game.scoreMove(${pIdx}, '${rule.id}')"
-                                    onchange="game.manualEntry(${pIdx}, '${rule.id}', this.value)">
-                                ${suggestion !== null ? `<div class="score-suggestion" onclick="game.scoreMove(${pIdx}, '${rule.id}')">+${suggestion}</div>` : ''}
-                            </div></td>`;
-                        }
-                    });
-                    tr.innerHTML = html;
-                    tbody.appendChild(tr);
-                });
-            }
-
-            // Logic Helpers
-            calcLogic(id) {
-                const d = this.diceValues;
-                if (!d.length) return 0;
-                const sum = d.reduce((a, b) => a + b, 0);
-                const counts = {}; d.forEach(x => counts[x] = (counts[x] || 0) + 1);
-                const unique = [...new Set(d)].sort((a,b) => a-b).join('');
-                
-                switch(id) {
-                    case '1s': return (counts[1] || 0) * 1;
-                    case '2s': return (counts[2] || 0) * 2;
-                    case '3s': return (counts[3] || 0) * 3;
-                    case '4s': return (counts[4] || 0) * 4;
-                    case '5s': return (counts[5] || 0) * 5;
-                    case '6s': return (counts[6] || 0) * 6;
-                    case 'tk': return Object.values(counts).some(x => x >= 3) ? sum : 0;
-                    case 'fk': return Object.values(counts).some(x => x >= 4) ? sum : 0;
-                    case 'fh': return (Object.values(counts).includes(3) && Object.values(counts).includes(2)) || Object.values(counts).includes(5) ? 25 : 0;
-                    case 'ss': return /1234|2345|3456/.test(unique) ? 30 : 0;
-                    case 'ls': return /12345|23456/.test(unique) ? 40 : 0;
-                    case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
-                    case 'ch': return sum;
-                    default: return 0;
-                }
-            }
-
-            calculate(pIdx, type) {
-                const p = this.players[pIdx];
-                const upper = ['1s','2s','3s','4s','5s','6s'].reduce((s, k) => s + (p.scores[k]||0), 0);
-                if (type === 'uSum') return upper;
-                if (type === 'bonus') return upper >= 63 ? 35 : 0;
-                if (type === 'grand') return upper + (upper >= 63 ? 35 : 0) + 
-                    ['tk','fk','fh','ss','ls','yz','ch'].reduce((s, k) => s + (p.scores[k]||0), 0);
-            }
-
-            // Game Management
-            scoreMove(pIdx, id) {
-                if (this.rolls === 0 || this.players[pIdx].scores[id] !== undefined) return;
-                const score = this.calcLogic(id);
-                this.players[pIdx].scores[id] = score;
-                if (id === 'yz' && score === 50) this.playSound('yahtzee'); // Celebrate
-                this.resetDice();
-                this.renderAll();
-                this.playSound('score');
-            }
-
-            resetDice() {
-                this.rolls = 0;
-                this.held.fill(false);
-                document.getElementById('rollBtn').disabled = false;
-                document.getElementById('rollCounter').textContent = 'ROLL 0 / 3';
-                document.querySelectorAll('.slot').forEach(s => s.classList.remove('held'));
-                
-                // Reset Dice Physics positions nicely
-                this.diceBodies.forEach((b, i) => {
-                    b.wakeUp();
-                    b.velocity.set(0,0,0);
-                    b.angularVelocity.set(0,0,0);
-                    b.position.set((i-2)*1.5, 1, 0);
-                    b.quaternion.set(0,0,0,1);
-                });
-            }
-
-            manualEntry(pIdx, id, val) {
-                const n = parseInt(val);
-                if (isNaN(n) || n < 0) delete this.players[pIdx].scores[id];
-                else this.players[pIdx].scores[id] = n;
-                this.renderRows();
-            }
-
-            addPlayer() {
-                if (this.players.length >= 8) return alert('Max 8 players');
-                this.players.push({ name: `Player ${this.players.length+1}`, color: COLORS[this.players.length%8], scores: {} });
-                this.renderAll();
-            }
-            removePlayer(idx) {
-                if (this.players.length > 1 && confirm(`Remove player?`)) {
-                    this.players.splice(idx, 1);
-                    this.renderAll();
-                }
-            }
-
-            // UI Helpers
-            setupDragAndDrop() {
-                const headers = document.querySelectorAll('.col-player');
-                headers.forEach(h => {
-                    h.addEventListener('dragstart', e => { e.dataTransfer.setData('text', h.dataset.idx); });
-                    h.addEventListener('dragover', e => e.preventDefault());
-                    h.addEventListener('drop', e => {
-                        e.preventDefault();
-                        const from = parseInt(e.dataTransfer.getData('text'));
-                        const to = parseInt(h.dataset.idx);
-                        if (from !== to) {
-                            const p = this.players.splice(from, 1)[0];
-                            this.players.splice(to, 0, p);
-                            this.renderAll();
-                        }
-                    });
-                });
-            }
-            setupColorPicker() {
-                const grid = document.getElementById('colorGrid');
-                COLORS.forEach(c => {
-                    const el = document.createElement('div');
-                    el.className = 'color-option';
-                    el.style.background = `var(${c})`;
-                    el.onclick = () => {
-                        if (this.currentColorPickerPlayer !== null) {
-                            this.players[this.currentColorPickerPlayer].color = c;
-                            this.renderAll();
-                            this.closeColorModal();
-                        }
-                    };
-                    grid.appendChild(el);
-                });
-            }
-            openColorPicker(i) { this.currentColorPickerPlayer = i; document.getElementById('colorModal').classList.add('active'); }
-            closeColorModal() { document.getElementById('colorModal').classList.remove('active'); }
-            toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+<script>
+    /**
+     * 3D PHYSICS ENGINE - TIGHT BOUNDARIES
+     */
+    class DiceEngine {
+        constructor(containerId, onSettle) {
+            this.container = document.getElementById(containerId);
+            this.onSettle = onSettle;
+            this.dice = [];
+            this.isRolling = false;
             
-            updatePlayerName(idx, val) { this.players[idx].name = val || `Player ${idx+1}`; }
+            this.initScene();
+            this.initPhysics();
+            this.createDice();
+            this.animate();
             
-            playSound(type) {
-                try {
-                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                    const osc = ctx.createOscillator();
-                    const g = ctx.createGain();
-                    osc.connect(g); g.connect(ctx.destination);
-                    
-                    if (type === 'roll') {
-                        // Rumble sound
-                        osc.type = 'sawtooth';
-                        osc.frequency.setValueAtTime(100, ctx.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.5);
-                        g.gain.setValueAtTime(0.1, ctx.currentTime);
-                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-                        osc.start(); osc.stop(ctx.currentTime + 0.5);
-                    }
-                    if (type === 'click') {
-                        // High click
-                        osc.frequency.value = 800; g.gain.value = 0.05; osc.start(); osc.stop(ctx.currentTime + 0.05);
-                    }
-                    if (type === 'score') {
-                        // Nice chord or ding
-                        osc.type = 'sine';
-                        osc.frequency.setValueAtTime(440, ctx.currentTime);
-                        osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
-                        g.gain.setValueAtTime(0.1, ctx.currentTime);
-                        g.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.3);
-                        osc.start(); osc.stop(ctx.currentTime + 0.3);
-                    }
-                    if (type === 'yahtzee') {
-                        // Fanfare
-                        // (Simplified for this snippet)
-                    }
-                } catch(e) {}
-            }
-
-            setupKeyboardShortcuts() {
-                document.addEventListener('keydown', e => {
-                    if (e.target.tagName === 'INPUT') return;
-                    if (e.key === ' ' && !this.isScorecardOnly) { e.preventDefault(); this.roll(); }
-                    if (e.key === 'r') this.resetDice();
-                    if (['1','2','3','4','5'].includes(e.key)) this.toggleHold(parseInt(e.key)-1);
-                });
-            }
-            
-            fullReset() { if(confirm("Reset everything?")) { this.players.forEach(p => p.scores={}); this.resetDice(); this.renderAll(); } }
+            window.addEventListener('resize', () => this.resize());
         }
 
-        const game = new YahtzeeElite();
-    </script>
+        initScene() {
+            this.scene = new THREE.Scene();
+            this.scene.background = null; 
+
+            this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+            this.camera.position.set(0, 18, 0); 
+            this.camera.lookAt(0, 0, 0);
+
+            this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+            this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            this.container.appendChild(this.renderer.domElement);
+
+            this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+            sun.position.set(10, 20, 10);
+            sun.castShadow = true;
+            sun.shadow.camera.left = -15; sun.shadow.camera.right = 15;
+            sun.shadow.camera.top = 15; sun.shadow.camera.bottom = -15;
+            this.scene.add(sun);
+
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(100, 100),
+                new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
+            );
+            floor.rotation.x = -Math.PI/2;
+            floor.receiveShadow = true;
+            this.scene.add(floor);
+        }
+
+        initPhysics() {
+            this.world = new CANNON.World();
+            this.world.gravity.set(0, -50, 0);
+            
+            const ground = new CANNON.Body({ mass: 0 });
+            ground.addShape(new CANNON.Plane());
+            ground.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
+            this.world.addBody(ground);
+
+            // BOUNDARY ENFORCEMENT: Walls positioned exactly at camera view edges
+            const wallMat = new CANNON.Material();
+            this.createWall(0, 7.8, 30, 1, wallMat);  // Top
+            this.createWall(0, -7.8, 30, 1, wallMat); // Bottom
+            this.createWall(11.5, 0, 1, 30, wallMat);  // Right
+            this.createWall(-11.5, 0, 1, 30, wallMat); // Left
+        }
+
+        createWall(x, z, w, d, mat) {
+            const body = new CANNON.Body({ mass: 0, material: mat });
+            body.addShape(new CANNON.Box(new CANNON.Vec3(w/2, 20, d/2))); // High walls to prevent jumping
+            body.position.set(x, 10, z);
+            this.world.addBody(body);
+        }
+
+        createDice() {
+            const geo = new THREE.BoxGeometry(1.2, 1.2, 1.2, 3, 3, 3);
+            const mats = this.getDiceMaterials();
+
+            for(let i=0; i<5; i++) {
+                const mesh = new THREE.Mesh(geo, mats);
+                mesh.castShadow = true;
+                
+                const body = new CANNON.Body({ 
+                    mass: 1.2, 
+                    shape: new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)),
+                    linearDamping: 0.2,
+                    angularDamping: 0.2
+                });
+                body.position.set((i-2)*1.8, 1.5, 0);
+                
+                this.dice.push({ mesh, body });
+                this.scene.add(mesh);
+                this.world.addBody(body);
+            }
+        }
+
+        getDiceMaterials() {
+            const createFace = (n) => {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256; canvas.height = 256;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath(); ctx.roundRect(0, 0, 256, 256, 40); ctx.fill();
+                ctx.fillStyle = '#1e293b';
+                const dot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI*2); ctx.fill(); };
+                if (n === 1) dot(128,128);
+                if (n === 2) { dot(64,64); dot(192,192); }
+                if (n === 3) { dot(64,64); dot(128,128); dot(192,192); }
+                if (n === 4) { dot(64,64); dot(192,64); dot(64,192); dot(192,192); }
+                if (n === 5) { dot(64,64); dot(192,64); dot(64,192); dot(192,192); dot(128,128); }
+                if (n === 6) { dot(64,64); dot(64,128); dot(64,192); dot(192,64); dot(192,128); dot(192,192); }
+                return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), roughness: 0.3 });
+            };
+            return [1, 6, 2, 5, 3, 4].map(v => createFace(v));
+        }
+
+        roll(heldIndices) {
+            this.isRolling = true;
+            this.dice.forEach((d, i) => {
+                if (heldIndices.includes(i)) return;
+                d.body.position.set(Math.random()*2-1, 10 + i, Math.random()*2-1);
+                d.body.velocity.set(Math.random()*20-10, -5, Math.random()*20-10);
+                d.body.angularVelocity.set(Math.random()*30, Math.random()*30, Math.random()*30);
+                d.body.allowSleep = true;
+            });
+        }
+
+        resetPhysics() {
+            this.dice.forEach((d, i) => {
+                d.body.position.set((i-2)*1.8, 1.5, 0);
+                d.body.velocity.set(0,0,0);
+                d.body.angularVelocity.set(0,0,0);
+                d.body.quaternion.set(0,0,0,1);
+            });
+        }
+
+        getValues() {
+            const ups = [
+                { v: 1, d: new THREE.Vector3(1,0,0) }, { v: 6, d: new THREE.Vector3(-1,0,0) },
+                { v: 2, d: new THREE.Vector3(0,1,0) }, { v: 5, d: new THREE.Vector3(0,-1,0) },
+                { v: 3, d: new THREE.Vector3(0,0,1) }, { v: 4, d: new THREE.Vector3(0,0,-1) }
+            ];
+            return this.dice.map(d => {
+                let max = -1, val = 1;
+                ups.forEach(u => {
+                    const world = u.d.clone().applyQuaternion(d.mesh.quaternion);
+                    if (world.y > max) { max = world.y; val = u.v; }
+                });
+                return val;
+            });
+        }
+
+        animate() {
+            requestAnimationFrame(() => this.animate());
+            this.world.step(1/60);
+            let moving = false;
+            this.dice.forEach(d => {
+                d.mesh.position.copy(d.body.position);
+                d.mesh.quaternion.copy(d.body.quaternion);
+                if (d.body.velocity.length() > 0.15) moving = true;
+            });
+            if (this.isRolling && !moving) {
+                this.isRolling = false;
+                this.onSettle(this.getValues());
+            }
+            this.renderer.render(this.scene, this.camera);
+        }
+
+        resize() {
+            this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
+            this.camera.updateProjectionMatrix();
+            this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
+        }
+    }
+
+    /**
+     * GAME ENGINE - CORE LOGIC
+     */
+    const RULES = [
+        { id: '1s', name: 'Ones', tip: 'Total of all ones' },
+        { id: '2s', name: 'Twos', tip: 'Total of all twos' },
+        { id: '3s', name: 'Threes', tip: 'Total of all threes' },
+        { id: '4s', name: 'Fours', tip: 'Total of all fours' },
+        { id: '5s', name: 'Fives', tip: 'Total of all fives' },
+        { id: '6s', name: 'Sixes', tip: 'Total of all sixes' },
+        { id: 'uSum', name: 'Upper Total', calc: true },
+        { id: 'bonus', name: 'Bonus (+35)', calc: true },
+        { id: '3k', name: '3 of a Kind', tip: 'Sum of all dice if 3 match' },
+        { id: '4k', name: '4 of a Kind', tip: 'Sum of all dice if 4 match' },
+        { id: 'fh', name: 'Full House', tip: '25 points for 3 of a kind + pair' },
+        { id: 'ss', name: 'Small Straight', tip: '30 points for sequence of 4' },
+        { id: 'ls', name: 'Large Straight', tip: '40 points for sequence of 5' },
+        { id: 'yz', name: 'Yahtzee', tip: '50 points for 5 of a kind' },
+        { id: 'ch', name: 'Chance', tip: 'Sum of all dice' },
+        { id: 'grand', name: 'Grand Total', calc: true }
+    ];
+
+    class YahtzeeElite {
+        constructor() {
+            this.players = [{ name: 'Player 1', scores: {} }];
+            this.turnIdx = 0;
+            this.rolls = 0;
+            this.held = [];
+            this.values = [1, 1, 1, 1, 1];
+            this.history = [];
+            
+            this.engine = new DiceEngine('canvas-3d', (v) => this.onDiceSettle(v));
+            this.initUI();
+            this.render();
+            this.setupTooltips();
+        }
+
+        initUI() {
+            const rack = document.getElementById('diceRack');
+            for(let i=0; i<5; i++) {
+                const slot = document.createElement('div');
+                slot.className = 'die-slot';
+                slot.id = `slot-${i}`;
+                slot.onclick = () => this.toggleHold(i);
+                slot.innerHTML = `<span class="val" id="dv-${i}">-</span><span class="lbl">Hold</span>`;
+                rack.appendChild(slot);
+            }
+        }
+
+        setupTooltips() {
+            const tt = document.getElementById('globalTooltip');
+            document.body.addEventListener('mouseover', (e) => {
+                const info = e.target.closest('.cat-info');
+                if (info && info.dataset.tip) {
+                    tt.textContent = info.dataset.tip;
+                    tt.style.display = 'block';
+                    tt.style.left = (e.pageX + 12) + 'px';
+                    tt.style.top = (e.pageY + 12) + 'px';
+                }
+            });
+            document.body.addEventListener('mouseout', () => tt.style.display = 'none');
+        }
+
+        roll() {
+            if (this.rolls >= 3 || this.engine.isRolling) return;
+            this.rolls++;
+            this.engine.roll(this.held);
+            this.updateStatus();
+        }
+
+        onDiceSettle(vals) {
+            this.values = vals;
+            vals.forEach((v, i) => document.getElementById(`dv-${i}`).textContent = v);
+            this.updateStatus();
+            this.render();
+        }
+
+        toggleHold(i) {
+            if (this.rolls === 0 || this.engine.isRolling) return;
+            const idx = this.held.indexOf(i);
+            if (idx > -1) this.held.splice(idx, 1);
+            else this.held.push(i);
+            document.getElementById(`slot-${i}`).classList.toggle('held', this.held.includes(i));
+        }
+
+        clearTray() {
+            this.rolls = 0; // RESET ROLLS TO MAKE DICE ROLLABLE AGAIN
+            this.held = [];
+            this.values = [1,1,1,1,1];
+            document.querySelectorAll('.die-slot').forEach(s => s.classList.remove('held'));
+            document.querySelectorAll('.val').forEach(v => v.textContent = '-');
+            this.engine.resetPhysics();
+            this.updateStatus();
+            this.render();
+        }
+
+        score(pIdx, catId) {
+            if (pIdx !== this.turnIdx || this.rolls === 0 || this.players[pIdx].scores[catId] !== undefined) return;
+            this.history.push(JSON.stringify({ players: this.players, turn: this.turnIdx }));
+            document.getElementById('undoBtn').disabled = false;
+            this.players[pIdx].scores[catId] = this.calcValue(catId, this.values);
+            this.nextTurn();
+        }
+
+        calcValue(id, dice) {
+            const sum = dice.reduce((a, b) => a + b, 0);
+            const counts = {}; dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+            const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
+            switch(id) {
+                case '1s': return (counts[1] || 0) * 1;
+                case '2s': return (counts[2] || 0) * 2;
+                case '3s': return (counts[3] || 0) * 3;
+                case '4s': return (counts[4] || 0) * 4;
+                case '5s': return (counts[5] || 0) * 5;
+                case '6s': return (counts[6] || 0) * 6;
+                case '3k': return Object.values(counts).some(c => c >= 3) ? sum : 0;
+                case '4k': return Object.values(counts).some(c => c >= 4) ? sum : 0;
+                case 'fh': return Object.values(counts).includes(3) && Object.values(counts).includes(2) ? 25 : 0;
+                case 'ss': return /1234|2345|3456/.test(unique) ? 30 : 0;
+                case 'ls': return /12345|23456/.test(unique) ? 40 : 0;
+                case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
+                case 'ch': return sum;
+                default: return 0;
+            }
+        }
+
+        nextTurn() {
+            this.rolls = 0;
+            this.held = [];
+            this.turnIdx = (this.turnIdx + 1) % this.players.length;
+            this.clearTray();
+            this.render();
+        }
+
+        prevTurn() { this.turnIdx = (this.turnIdx - 1 + this.players.length) % this.players.length; this.render(); }
+
+        updateStatus() {
+            const btn = document.getElementById('rollBtn');
+            btn.disabled = this.rolls >= 3 || this.engine.isRolling;
+            document.getElementById('rollStatus').textContent = `Roll ${this.rolls} / 3`;
+        }
+
+        render() {
+            const pHeader = document.getElementById('playerHeaderRow');
+            pHeader.innerHTML = '<th>Category</th>' + this.players.map((p, i) => `
+                <th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}" 
+                    draggable="true" ondragstart="game.drag(${i})" ondragover="event.preventDefault()" ondrop="game.drop(${i})">
+                    <span class="remove-player" onclick="game.removePlayer(${i})">✕</span>
+                    <input class="player-name-input" value="${p.name}" onchange="game.renamePlayer(${i}, this.value)">
+                </th>`).join('');
+
+            const body = document.getElementById('scoreTableBody');
+            body.innerHTML = '';
+
+            RULES.forEach(rule => {
+                const tr = document.createElement('tr');
+                tr.className = rule.calc ? 'total-row' : 'cat-row';
+                let html = `<td class="cat-info" data-tip="${rule.tip || ''}">${rule.name} ${rule.tip ? '<span class="tip-icon">?</span>' : ''}</td>`;
+                this.players.forEach((p, pi) => {
+                    const val = p.scores[rule.id];
+                    if (rule.calc) {
+                        html += `<td class="score-cell locked ${pi === this.turnIdx ? 'active-turn-col' : ''}">${this.getCalcScore(pi, rule.id)}</td>`;
+                    } else {
+                        const isHint = pi === this.turnIdx && this.rolls > 0 && val === undefined;
+                        const display = val !== undefined ? val : (isHint ? this.calcValue(rule.id, this.values) : '');
+                        html += `<td class="score-cell ${val !== undefined ? 'locked' : ''} ${isHint ? 'hint' : ''} ${pi === this.turnIdx ? 'active-turn-col' : ''}" 
+                                     onclick="game.score(${pi}, '${rule.id}')">${display}</td>`;
+                    }
+                });
+                tr.innerHTML = html; body.appendChild(tr);
+            });
+            document.getElementById('activePlayerDisplay').textContent = this.players[this.turnIdx].name;
+        }
+
+        getCalcScore(pi, id) {
+            const p = this.players[pi];
+            const u = ['1s','2s','3s','4s','5s','6s'].reduce((a,c) => a + (p.scores[c]||0), 0);
+            if (id === 'uSum') return u;
+            if (id === 'bonus') return u >= 63 ? 35 : 0;
+            const l = ['3k','4k','fh','ss','ls','yz','ch'].reduce((a,c) => a + (p.scores[c]||0), 0);
+            if (id === 'grand') return u + (u >= 63 ? 35 : 0) + l;
+        }
+
+        undo() {
+            if (this.history.length === 0) return;
+            const state = JSON.parse(this.history.pop());
+            this.players = state.players; this.turnIdx = state.turn;
+            if (this.history.length === 0) document.getElementById('undoBtn').disabled = true;
+            this.render();
+        }
+
+        renamePlayer(i, val) { this.players[i].name = val || `Player ${i+1}`; this.render(); }
+        addPlayer() { if(this.players.length < 8) this.players.push({ name: `Player ${this.players.length+1}`, scores: {} }); this.render(); }
+        removePlayer(i) { if(this.players.length > 1) { this.players.splice(i, 1); this.turnIdx %= this.players.length; this.render(); } }
+        drag(i) { this.dragIdx = i; }
+        drop(i) { const p = this.players.splice(this.dragIdx, 1)[0]; this.players.splice(i, 0, p); this.render(); }
+
+        toggleFocusMode() {
+            document.body.classList.toggle('scorecard-focused');
+            document.getElementById('focusBtn').textContent = document.body.classList.contains('scorecard-focused') ? '🎮 Game Mode' : '📋 Scorecard Only';
+            window.dispatchEvent(new Event('resize'));
+        }
+
+        toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+        fullReset() { if(confirm("Clear all game data and restart?")) location.reload(); }
+    }
+
+    const game = new YahtzeeElite();
+</script>
+
 </body>
 </html>
