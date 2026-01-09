@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Yahtzee Elite - Premium Edition</title>
+    <!-- Physics Engine -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
@@ -39,11 +40,7 @@
             --shadow: rgba(0,0,0,0.3);
         }
 
-        * { 
-            box-sizing: border-box; 
-            margin: 0; 
-            padding: 0;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         
         body { 
             font-family: 'Fredoka', 'Inter', system-ui, sans-serif;
@@ -67,7 +64,6 @@
             color: white;
             text-shadow: 0 4px 20px rgba(0,0,0,0.3);
             margin-bottom: 20px;
-            letter-spacing: -1px;
         }
 
         /* Controls */
@@ -88,40 +84,17 @@
             font-weight: 600;
             font-size: 14px;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s;
             box-shadow: 0 4px 15px var(--shadow);
-            display: flex;
+            display: inline-flex;
             align-items: center;
             gap: 8px;
         }
         
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px var(--shadow);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 16px 48px;
-            font-size: 18px;
-            font-weight: 700;
-        }
-        
-        .btn-primary:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        .btn-danger {
-            background: linear-gradient(135deg, #f56565 0%, #c53030 100%);
-            color: white;
-        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 16px 48px; font-size: 18px; }
+        .btn-danger { background: linear-gradient(135deg, #f56565 0%, #c53030 100%); color: white; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* Physics Tray */
         .tray-container {
@@ -144,11 +117,12 @@
         }
 
         canvas {
-            border-radius: 16px;
-            display: block; /* Removes bottom spacing */
+            display: block;
+            width: 100%;
+            height: 100%;
         }
 
-        /* Lock Rack */
+        /* Rack */
         .rack-container {
             max-width: 800px;
             margin: 0 auto 30px;
@@ -158,87 +132,43 @@
             box-shadow: 0 10px 40px var(--shadow);
         }
 
-        .rack-title {
-            text-align: center;
-            font-weight: 700;
-            font-size: 14px;
-            color: var(--primary);
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .rack-title { text-align: center; color: var(--primary); font-weight: 700; margin-bottom: 12px; letter-spacing: 1px; text-transform: uppercase; font-size: 14px; }
 
-        .rack {
-            display: flex;
-            justify-content: center;
-            gap: 16px;
-        }
+        .rack { display: flex; justify-content: center; gap: 16px; }
 
         .slot {
-            width: 80px;
-            height: 100px;
+            width: 80px; height: 100px;
             background: linear-gradient(145deg, #f7fafc, #edf2f7);
             border: 3px solid var(--border);
             border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            box-shadow: 0 4px 10px var(--shadow);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.3s;
         }
 
-        .slot:hover {
-            transform: translateY(-4px);
-            border-color: var(--primary);
-        }
-
+        .slot:hover { transform: translateY(-4px); border-color: var(--primary); }
+        
         .slot.held {
             background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-color: var(--primary);
             transform: translateY(-8px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
         }
+        .slot.held .slot-value { color: white; }
+        .slot.held .slot-label { opacity: 1; color: white; }
 
-        .slot.held .slot-value {
-            color: white;
-        }
+        .slot-value { font-size: 36px; font-weight: 700; color: var(--text); }
+        .slot-label { font-size: 10px; font-weight: 700; color: var(--primary); margin-top: 4px; opacity: 0; }
 
-        .slot-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: var(--text);
-        }
-
-        .slot-label {
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--primary);
-            margin-top: 4px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .slot.held .slot-label {
-            opacity: 1;
-            color: white;
-        }
-
-        /* Roll Button Area */
+        /* Roll Area - CENTERED */
         .roll-area {
-            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
             margin-bottom: 40px;
         }
 
-        .roll-counter {
-            font-size: 18px;
-            font-weight: 700;
-            color: white;
-            margin-top: 12px;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.3);
-        }
+        .roll-counter { color: white; font-weight: 700; font-size: 18px; text-shadow: 0 2px 5px rgba(0,0,0,0.2); }
 
         /* Scorecard */
         .scorecard-container {
@@ -251,335 +181,39 @@
             overflow-x: auto;
         }
 
-        table {
-            width: 100%;
-            border-collapse: separate;
-            border-spacing: 0;
-        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td { padding: 16px; text-align: center; border-bottom: 2px solid var(--border); }
+        th { font-weight: 700; font-size: 14px; }
+        
+        .col-cat { text-align: left; width: 200px; position: sticky; left: 0; background: white; z-index: 10; font-weight: 700; }
+        .col-player { min-width: 140px; cursor: grab; }
 
-        th, td {
-            padding: 16px;
-            text-align: center;
-            border-bottom: 2px solid var(--border);
-        }
+        .player-header { border-radius: 12px; padding: 16px; color: white; position: relative; }
+        .player-name-input { border: none; background: rgba(255,255,255,0.2); color: white; font-weight: 700; text-align: center; width: 100%; padding: 8px; border-radius: 8px; }
+        .player-controls { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
 
-        th {
-            font-weight: 700;
-            font-size: 14px;
-            position: relative;
-        }
+        .score-input { width: 100%; border: none; text-align: center; font-size: 20px; font-weight: 700; outline: none; background: transparent; }
+        .score-input:hover:not([readonly]) { background: rgba(102, 126, 234, 0.1); border-radius: 8px; }
+        .score-suggestion { position: absolute; top: 4px; right: 4px; background: var(--success); color: white; font-size: 10px; padding: 2px 6px; border-radius: 4px; }
+        
+        .row-shaded td { background: linear-gradient(145deg, #f7fafc, #edf2f7); }
+        .calculated-score { font-size: 22px; font-weight: 700; color: var(--primary); }
 
-        .col-cat {
-            text-align: left;
-            font-weight: 700;
-            width: 200px;
-            position: sticky;
-            left: 0;
-            background: white;
-            z-index: 10;
-        }
-
-        .col-player {
-            min-width: 140px;
-            cursor: grab;
-            user-select: none;
-            transition: all 0.3s;
-        }
-
-        .col-player:active {
-            cursor: grabbing;
-        }
-
-        .col-player.dragging {
-            opacity: 0.5;
-            transform: scale(0.95);
-        }
-
-        .player-header {
-            border-radius: 12px;
-            padding: 16px;
-            color: white;
-            position: relative;
-        }
-
-        .player-name-input {
-            border: none;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-weight: 700;
-            text-align: center;
-            width: 100%;
-            padding: 8px;
-            border-radius: 8px;
-            font-size: 16px;
-            margin-bottom: 12px;
-        }
-
-        .player-name-input::placeholder {
-            color: rgba(255,255,255,0.7);
-        }
-
-        .player-controls {
-            display: flex;
-            justify-content: center;
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .color-picker-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            border: 3px solid white;
-            cursor: pointer;
-            transition: all 0.3s;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-        }
-
-        .color-picker-btn:hover {
-            transform: scale(1.2);
-        }
-
-        .remove-player-btn {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 2px solid white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 11px;
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-        }
-
-        .remove-player-btn:hover {
-            background: var(--danger);
-            border-color: var(--danger);
-        }
-
-        /* Color Picker Modal */
-        .color-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-        }
-
-        .color-modal.active {
-            opacity: 1;
-            pointer-events: all;
-        }
-
-        .color-modal-content {
-            background: white;
-            padding: 30px;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            transform: scale(0.9);
-            transition: transform 0.3s;
-        }
-
-        .color-modal.active .color-modal-content {
-            transform: scale(1);
-        }
-
-        .color-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-top: 20px;
-        }
-
-        .color-option {
-            width: 70px;
-            height: 70px;
-            border-radius: 16px;
-            cursor: pointer;
-            transition: all 0.3s;
-            border: 4px solid transparent;
-        }
-
-        .color-option:hover {
-            transform: scale(1.1);
-            border-color: var(--primary);
-        }
-
-        /* Score Cells */
-        td {
-            position: relative;
-        }
-
-        .score-cell {
-            min-height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .score-input {
-            width: 100%;
-            border: none;
-            background: transparent;
-            text-align: center;
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--text);
-            outline: none;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .score-input:hover:not([readonly]) {
-            background: rgba(102, 126, 234, 0.1);
-        }
-
-        .score-input[readonly] {
-            cursor: default;
-        }
-
-        .score-suggestion {
-            position: absolute;
-            top: 4px;
-            right: 4px;
-            background: var(--success);
-            color: white;
-            font-size: 10px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: 700;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .score-input:not([readonly]):hover ~ .score-suggestion {
-            opacity: 1;
-        }
-
-        .row-shaded td {
-            background: linear-gradient(145deg, #f7fafc, #edf2f7);
-            font-weight: 700;
-        }
-
-        .calculated-score {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--primary);
-        }
-
-        /* Tooltip */
-        .info {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 20px;
-            height: 20px;
-            background: var(--primary);
-            color: white;
-            border-radius: 50%;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: help;
-            margin-left: 8px;
-            position: relative;
-        }
-
-        .tip {
-            position: absolute;
-            bottom: 130%;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #2d3748;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            white-space: nowrap;
-            opacity: 0;
-            pointer-events: none;
-            transition: opacity 0.3s;
-            z-index: 100;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        .tip::after {
-            content: '';
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            border: 6px solid transparent;
-            border-top-color: #2d3748;
-        }
-
-        .info:hover .tip {
-            opacity: 1;
-        }
-
-        /* Confetti Animation */
-        .confetti {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: var(--primary);
-            position: absolute;
-            animation: confetti-fall 3s linear forwards;
-        }
-
-        @keyframes confetti-fall {
-            to {
-                transform: translateY(100vh) rotate(360deg);
-                opacity: 0;
-            }
-        }
-
-        /* Responsive */
+        /* Utilities */
+        .color-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .color-modal.active { opacity: 1; pointer-events: all; }
+        .color-modal-content { background: white; padding: 30px; border-radius: 20px; }
+        .color-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 20px; }
+        .color-option { width: 60px; height: 60px; border-radius: 12px; cursor: pointer; transition: transform 0.2s; }
+        .color-option:hover { transform: scale(1.1); }
+        .info { display: inline-flex; width: 20px; height: 20px; background: var(--primary); color: white; border-radius: 50%; font-size: 12px; align-items: center; justify-content: center; cursor: help; margin-left: 8px; position: relative; }
+        .tip { position: absolute; bottom: 130%; left: 50%; transform: translateX(-50%); background: #2d3748; color: white; padding: 12px; border-radius: 8px; width: max-content; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 100; }
+        .info:hover .tip { opacity: 1; }
+        
         @media (max-width: 768px) {
-            .header h1 {
-                font-size: 2rem;
-            }
-            
-            .rack {
-                gap: 8px;
-            }
-            
-            .slot {
-                width: 60px;
-                height: 80px;
-            }
-            
-            .slot-value {
-                font-size: 28px;
-            }
-            
-            th, td {
-                padding: 12px 8px;
-            }
-        }
-
-        /* Drag Handle */
-        .drag-handle {
-            cursor: grab;
-            font-size: 20px;
-            opacity: 0.5;
-            transition: opacity 0.3s;
-        }
-
-        .drag-handle:hover {
-            opacity: 1;
+            .header h1 { font-size: 2rem; }
+            .rack { gap: 8px; }
+            .slot { width: 60px; height: 80px; }
         }
     </style>
 </head>
@@ -643,7 +277,7 @@
 
     <div class="color-modal" id="colorModal" onclick="game.closeColorModal()">
         <div class="color-modal-content" onclick="event.stopPropagation()">
-            <h3 style="text-align: center; margin-bottom: 10px;">Choose Player Color</h3>
+            <h3 style="text-align: center;">Choose Color</h3>
             <div class="color-grid" id="colorGrid"></div>
         </div>
     </div>
@@ -678,10 +312,15 @@
                 this.isScorecardOnly = false;
                 this.isRolling = false;
                 this.engine = null;
-                this.render = null;
                 this.diceBodies = [];
                 this.currentColorPickerPlayer = null;
                 
+                // Canvas vars
+                this.canvas = null;
+                this.ctx = null;
+                this.width = 0;
+                this.height = 0;
+
                 this.init();
             }
 
@@ -693,124 +332,135 @@
             }
 
             setupPhysics() {
-                const { Engine, Render, World, Bodies, Runner, Events } = Matter;
+                const { Engine, World, Bodies, Runner } = Matter;
                 
+                // 1. Setup Canvas
                 const tray = document.getElementById('tray');
-                const width = tray.offsetWidth;
-                const height = tray.offsetHeight;
+                this.width = tray.clientWidth || 800; // Fallback
+                this.height = tray.clientHeight || 400;
 
+                this.canvas = document.createElement('canvas');
+                this.canvas.width = this.width;
+                this.canvas.height = this.height;
+                tray.innerHTML = ''; // Clear previous
+                tray.appendChild(this.canvas);
+                this.ctx = this.canvas.getContext('2d');
+
+                // 2. Setup Matter JS Engine
                 this.engine = Engine.create();
-                this.engine.gravity.y = 1.5; // Slightly lower gravity for better movement
-
-                this.render = Render.create({
-                    element: tray,
-                    engine: this.engine,
-                    options: {
-                        width: width,
-                        height: height,
-                        wireframes: false,
-                        background: 'transparent', // Important
-                        pixelRatio: window.devicePixelRatio
-                    }
-                });
-
-                // Create invisible walls
-                const wallOptions = { 
-                    isStatic: true, 
-                    render: { fillStyle: 'transparent' },
-                    restitution: 1.0 
-                };
                 
-                const walls = [
-                    Bodies.rectangle(width/2, -50, width, 100, wallOptions),
-                    Bodies.rectangle(width/2, height + 50, width, 100, wallOptions),
-                    Bodies.rectangle(-50, height/2, 100, height, wallOptions),
-                    Bodies.rectangle(width + 50, height/2, 100, height, wallOptions)
-                ];
+                // TOP DOWN PHYSICS SETTINGS
+                this.engine.gravity.y = 0; // No falling
+                this.engine.gravity.x = 0;
 
+                // 3. Create Walls (Invisible)
+                const wallOptions = { isStatic: true, restitution: 0.8, friction: 0 };
+                const walls = [
+                    Bodies.rectangle(this.width/2, -50, this.width, 100, wallOptions), // Top
+                    Bodies.rectangle(this.width/2, this.height + 50, this.width, 100, wallOptions), // Bottom
+                    Bodies.rectangle(-50, this.height/2, 100, this.height, wallOptions), // Left
+                    Bodies.rectangle(this.width + 50, this.height/2, 100, this.height, wallOptions) // Right
+                ];
                 World.add(this.engine.world, walls);
 
-                Runner.run(this.engine);
-                Render.run(this.render);
+                // 4. Custom Render Loop
+                const animate = () => {
+                    window.requestAnimationFrame(animate);
+                    
+                    // Step Physics
+                    Engine.update(this.engine, 1000 / 60);
 
-                // --- CUSTOM RENDER HOOK ---
-                // This draws the dice after the physics calculation
-                Events.on(this.render, 'afterRender', () => {
-                    const ctx = this.render.context;
-                    this.diceBodies.forEach((body) => {
-                        if (body) {
-                            this.drawCustomDie(ctx, body);
-                        }
+                    // Clear Canvas
+                    this.ctx.clearRect(0, 0, this.width, this.height);
+
+                    // Draw Dice
+                    this.diceBodies.forEach(body => {
+                        if (body) this.drawDie(this.ctx, body);
                     });
-                });
+                };
+
+                animate();
             }
 
-            // Custom Drawing Function using HTML5 Canvas
-            drawCustomDie(ctx, body) {
+            drawDie(ctx, body) {
                 const size = 60;
                 const radius = 10;
                 const dotSize = 6;
                 
+                ctx.save();
                 ctx.translate(body.position.x, body.position.y);
                 ctx.rotate(body.angle);
-
-                // 1. Draw Die Body
-                ctx.shadowColor = "rgba(0,0,0,0.2)";
-                ctx.shadowBlur = 10;
-                ctx.shadowOffsetY = 4;
-                ctx.fillStyle = "#ffffff";
                 
-                ctx.beginPath();
-                if (ctx.roundRect) {
-                    ctx.roundRect(-size/2, -size/2, size, size, radius);
-                } else {
-                    ctx.rect(-size/2, -size/2, size, size); // Fallback
+                // Shadow (Top Down Style - Centered and blurred)
+                ctx.shadowColor = "rgba(0,0,0,0.3)";
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 0;
+                ctx.shadowOffsetY = 5;
+
+                // --- NEW LOGIC: Tumble Effect ---
+                // If the die is moving fast, randomly change the displayed number
+                // to simulate the die tumbling in 3D space.
+                let displayValue = body.value;
+                const speed = body.speed;
+                const angularSpeed = Math.abs(body.angularVelocity);
+
+                if (speed > 0.5 || angularSpeed > 0.1) {
+                    displayValue = Math.floor(Math.random() * 6) + 1;
                 }
+                // --------------------------------
+
+                // Body (Rounded Rect)
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.moveTo(-size/2 + radius, -size/2);
+                ctx.lineTo(size/2 - radius, -size/2);
+                ctx.quadraticCurveTo(size/2, -size/2, size/2, -size/2 + radius);
+                ctx.lineTo(size/2, size/2 - radius);
+                ctx.quadraticCurveTo(size/2, size/2, size/2 - radius, size/2);
+                ctx.lineTo(-size/2 + radius, size/2);
+                ctx.quadraticCurveTo(-size/2, size/2, -size/2, size/2 - radius);
+                ctx.lineTo(-size/2, -size/2 + radius);
+                ctx.quadraticCurveTo(-size/2, -size/2, -size/2 + radius, -size/2);
+                ctx.closePath();
                 ctx.fill();
 
-                // Reset shadow
+                // Dots
                 ctx.shadowColor = "transparent";
-                ctx.fillStyle = "#2d3748"; // Dot color
+                ctx.fillStyle = "#2d3748";
                 
-                // 2. Draw Dots
                 const q = size / 4;
-                const drawDot = (x, y) => {
+                const drawDot = (dx, dy) => {
                     ctx.beginPath();
-                    ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+                    ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
                     ctx.fill();
                 };
 
-                const v = body.value;
-                if (v === 1 || v === 3 || v === 5) drawDot(0, 0);
-                if (v !== 1) { drawDot(-q, -q); drawDot(q, q); }
-                if (v === 4 || v === 5 || v === 6) { drawDot(q, -q); drawDot(-q, q); }
-                if (v === 6) { drawDot(-q, 0); drawDot(q, 0); }
+                const v = displayValue;
+                if (v % 2 !== 0) drawDot(0, 0); // 1, 3, 5
+                if (v > 1) { drawDot(-q, -q); drawDot(q, q); } // 2+
+                if (v > 3) { drawDot(q, -q); drawDot(-q, q); } // 4+
+                if (v === 6) { drawDot(-q, 0); drawDot(q, 0); } // 6
 
-                // Restore context
-                ctx.rotate(-body.angle);
-                ctx.translate(-body.position.x, -body.position.y);
+                ctx.restore();
             }
 
             createDie(value, index) {
                 const { Bodies } = Matter;
                 const size = 60;
                 
-                const x = 100 + Math.random() * (this.render.options.width - 200);
-                const y = -100 - index * 60; // Staggered drop
+                // Spawn in center with slight spread
+                const startX = this.width / 2 + (Math.random() * 40 - 20);
+                const startY = this.height / 2 + (Math.random() * 40 - 20);
 
-                const die = Bodies.rectangle(x, y, size, size, {
-                    restitution: 0.5, // Plastic bounce feel
-                    friction: 0.1,    // Slide on table
-                    density: 0.002,   // Weight
-                    angle: Math.random() * Math.PI,
-                    render: {
-                        visible: false // HIDE default rendering so we can draw our own
-                    },
-                    label: `die-${index}`,
-                    value: value,
-                    index: index
+                const die = Bodies.rectangle(startX, startY, size, size, {
+                    restitution: 0.8, // Bouncy
+                    friction: 0.0,
+                    frictionAir: 0.04, // Simulates sliding on felt table
+                    density: 0.002,
+                    angle: Math.random() * Math.PI * 2,
+                    value: value 
                 });
-
+                die.value = value;
                 return die;
             }
 
@@ -821,41 +471,46 @@
                 this.isRolling = true;
                 this.rolls++;
 
-                // Remove non-held dice
+                // Clear old dice bodies that aren't held
+                const { World } = Matter;
                 this.diceBodies.forEach((body, i) => {
                     if (body && !this.held[i]) {
-                        Matter.World.remove(this.engine.world, body);
+                        World.remove(this.engine.world, body);
                         this.diceBodies[i] = null;
                     }
                 });
 
-                // Roll non-held dice
+                // Create new dice
                 this.dice = this.dice.map((v, i) => {
                     if (this.held[i]) return v;
-                    const newVal = Math.floor(Math.random() * 6) + 1;
                     
+                    const newVal = Math.floor(Math.random() * 6) + 1;
                     const die = this.createDie(newVal, i);
-                    Matter.World.add(this.engine.world, die);
+                    World.add(this.engine.world, die);
                     this.diceBodies[i] = die;
 
-                    // Apply chaotic forces for a good tumble
-                    Matter.Body.setVelocity(die, {
-                        x: (Math.random() - 0.5) * 15,
-                        y: Math.random() * 5 + 5
-                    });
-                    Matter.Body.setAngularVelocity(die, (Math.random() - 0.5) * 0.5);
+                    // EXPLOSION FORCE (Simulate throw)
+                    // We throw them in random directions from center
+                    const angle = Math.random() * Math.PI * 2;
+                    const forceMagnitude = 0.03 + Math.random() * 0.02;
                     
+                    Matter.Body.applyForce(die, die.position, {
+                        x: Math.cos(angle) * forceMagnitude,
+                        y: Math.sin(angle) * forceMagnitude
+                    });
+                    
+                    // Add heavy spin
+                    Matter.Body.setAngularVelocity(die, (Math.random() - 0.5) * 0.8);
+
                     return newVal;
                 });
 
+                // Finish roll logic
                 setTimeout(() => {
                     this.isRolling = false;
                     this.updateRack();
                     document.getElementById('rollCounter').textContent = `ROLL ${this.rolls} / 3`;
-                    
-                    if (this.rolls === 3) {
-                        document.getElementById('rollBtn').disabled = true;
-                    }
+                    if (this.rolls === 3) document.getElementById('rollBtn').disabled = true;
                 }, 2000);
             }
 
@@ -867,43 +522,31 @@
 
             toggleHold(i) {
                 if (this.rolls === 0 || this.isRolling) return;
-                
                 this.held[i] = !this.held[i];
                 document.getElementById(`slot-${i}`).classList.toggle('held', this.held[i]);
                 this.playSound('click');
             }
 
-            renderAll() {
-                this.renderHeaders();
-                this.renderRows();
-            }
+            // --- UI Rendering (Scorecard, etc) ---
+            renderAll() { this.renderHeaders(); this.renderRows(); }
 
             renderHeaders() {
                 const head = document.getElementById('head');
                 let html = '<tr><th class="col-cat">Category</th>';
-                
                 this.players.forEach((p, i) => {
                     html += `
                         <th class="col-player" draggable="true" data-idx="${i}">
                             <div class="player-header" style="background: var(${p.color})">
-                                <div class="drag-handle">⋮⋮</div>
                                 <input class="player-name-input" value="${p.name}" 
                                     onchange="game.updatePlayerName(${i}, this.value)"
                                     placeholder="Player ${i + 1}">
                                 <div class="player-controls">
-                                    <div class="color-picker-btn" style="background: var(${p.color})"
-                                        onclick="game.openColorPicker(${i})"></div>
-                                    ${this.players.length > 1 ? `
-                                        <button class="remove-player-btn" onclick="game.removePlayer(${i})">
-                                            ✕ Remove
-                                        </button>
-                                    ` : ''}
+                                    <div class="color-option" style="width:20px;height:20px;background:white;opacity:0.5" onclick="game.openColorPicker(${i})"></div>
+                                    ${this.players.length > 1 ? `<span onclick="game.removePlayer(${i})" style="cursor:pointer;opacity:0.7">✕</span>` : ''}
                                 </div>
                             </div>
-                        </th>
-                    `;
+                        </th>`;
                 });
-                
                 head.innerHTML = html + '</tr>';
                 this.setupDragAndDrop();
             }
@@ -911,181 +554,51 @@
             renderRows() {
                 const tbody = document.getElementById('rows');
                 tbody.innerHTML = '';
-                
                 RULES.forEach(rule => {
                     const tr = document.createElement('tr');
                     if (rule.shaded) tr.classList.add('row-shaded');
-                    
-                    let html = `
-                        <td class="col-cat">
-                            ${rule.name}
-                            <span class="info">?
-                                <div class="tip">${rule.tip}</div>
-                            </span>
-                        </td>
-                    `;
+                    let html = `<td class="col-cat">${rule.name}<span class="info">?<div class="tip">${rule.tip}</div></span></td>`;
                     
                     this.players.forEach((p, pIdx) => {
                         const score = p.scores[rule.id];
-                        
                         if (rule.calc) {
-                            const calcScore = this.calculate(pIdx, rule.id);
-                            html += `
-                                <td>
-                                    <div class="calculated-score">${calcScore}</div>
-                                </td>
-                            `;
+                            html += `<td><div class="calculated-score">${this.calculate(pIdx, rule.id)}</div></td>`;
                         } else {
-                            const suggestion = this.rolls > 0 && score === undefined ? 
-                                this.calcLogic(rule.id) : null;
-                            
-                            html += `
-                                <td>
-                                    <div class="score-cell">
-                                        <input class="score-input" 
-                                            type="number" 
-                                            value="${score ?? ''}"
-                                            ${this.isScorecardOnly ? '' : 'readonly'}
-                                            ${score !== undefined ? 'disabled' : ''}
-                                            onclick="${this.isScorecardOnly ? '' : `game.scoreMove(${pIdx}, '${rule.id}')`}"
-                                            onchange="game.manualEntry(${pIdx}, '${rule.id}', this.value)">
-                                        ${suggestion !== null ? `
-                                            <div class="score-suggestion">+${suggestion}</div>
-                                        ` : ''}
-                                    </div>
-                                </td>
-                            `;
+                            const suggestion = this.rolls > 0 && score === undefined ? this.calcLogic(rule.id) : null;
+                            html += `<td><div class="score-cell">
+                                <input class="score-input" type="number" value="${score ?? ''}" 
+                                    ${this.isScorecardOnly ? '' : 'readonly'} ${score !== undefined ? 'disabled' : ''}
+                                    onclick="${!this.isScorecardOnly ? `game.scoreMove(${pIdx}, '${rule.id}')` : ''}"
+                                    onchange="game.manualEntry(${pIdx}, '${rule.id}', this.value)">
+                                ${suggestion !== null ? `<div class="score-suggestion">+${suggestion}</div>` : ''}
+                            </div></td>`;
                         }
                     });
-                    
                     tr.innerHTML = html;
                     tbody.appendChild(tr);
                 });
             }
 
-            setupDragAndDrop() {
-                const headers = document.querySelectorAll('.col-player');
-                
-                headers.forEach(header => {
-                    header.addEventListener('dragstart', (e) => {
-                        e.dataTransfer.effectAllowed = 'move';
-                        e.dataTransfer.setData('text/plain', header.dataset.idx);
-                        header.classList.add('dragging');
-                    });
-                    
-                    header.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        e.dataTransfer.dropEffect = 'move';
-                    });
-                    
-                    header.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
-                        const toIdx = parseInt(header.dataset.idx);
-                        
-                        if (fromIdx !== toIdx) {
-                            this.movePlayer(fromIdx, toIdx);
-                        }
-                    });
-                    
-                    header.addEventListener('dragend', () => {
-                        header.classList.remove('dragging');
-                    });
-                });
-            }
-
-            movePlayer(from, to) {
-                const player = this.players.splice(from, 1)[0];
-                this.players.splice(to, 0, player);
-                this.renderAll();
-            }
-
-            setupColorPicker() {
-                const grid = document.getElementById('colorGrid');
-                COLORS.forEach(color => {
-                    const div = document.createElement('div');
-                    div.className = 'color-option';
-                    div.style.background = `var(${color})`;
-                    div.onclick = () => this.selectColor(color);
-                    grid.appendChild(div);
-                });
-            }
-
-            openColorPicker(playerIdx) {
-                this.currentColorPickerPlayer = playerIdx;
-                document.getElementById('colorModal').classList.add('active');
-            }
-
-            closeColorModal() {
-                document.getElementById('colorModal').classList.remove('active');
-                this.currentColorPickerPlayer = null;
-            }
-
-            selectColor(color) {
-                if (this.currentColorPickerPlayer !== null) {
-                    this.players[this.currentColorPickerPlayer].color = color;
-                    this.renderAll();
-                    this.closeColorModal();
-                }
-            }
-
-            updatePlayerName(idx, name) {
-                this.players[idx].name = name || `Player ${idx + 1}`;
-            }
-
-            scoreMove(pIdx, id) {
-                if (this.rolls === 0 || this.players[pIdx].scores[id] !== undefined) return;
-                
-                const score = this.calcLogic(id);
-                this.players[pIdx].scores[id] = score;
-                
-                if (id === 'yz' && score === 50) {
-                    this.celebrate();
-                }
-                
-                this.resetDice();
-                this.renderAll();
-                this.playSound('score');
-            }
-
-            manualEntry(pIdx, id, val) {
-                const n = parseInt(val);
-                if (isNaN(n) || n < 0) {
-                    delete this.players[pIdx].scores[id];
-                } else {
-                    this.players[pIdx].scores[id] = n;
-                }
-                this.renderRows();
-            }
-
+            // Logic Helpers
             calcLogic(id) {
                 const d = this.dice.filter(x => x > 0);
-                if (d.length === 0) return 0;
-                
+                if (!d.length) return 0;
                 const sum = d.reduce((a, b) => a + b, 0);
-                const counts = d.reduce((acc, v) => {
-                    acc[v] = (acc[v] || 0) + 1;
-                    return acc;
-                }, {});
-                const unique = [...new Set(d)].sort((a, b) => a - b);
+                const counts = {}; d.forEach(x => counts[x] = (counts[x] || 0) + 1);
+                const unique = [...new Set(d)].sort((a,b) => a-b).join('');
                 
                 switch(id) {
-                    case '1s': return d.filter(x => x === 1).length * 1;
-                    case '2s': return d.filter(x => x === 2).length * 2;
-                    case '3s': return d.filter(x => x === 3).length * 3;
-                    case '4s': return d.filter(x => x === 4).length * 4;
-                    case '5s': return d.filter(x => x === 5).length * 5;
-                    case '6s': return d.filter(x => x === 6).length * 6;
+                    case '1s': return (counts[1] || 0) * 1;
+                    case '2s': return (counts[2] || 0) * 2;
+                    case '3s': return (counts[3] || 0) * 3;
+                    case '4s': return (counts[4] || 0) * 4;
+                    case '5s': return (counts[5] || 0) * 5;
+                    case '6s': return (counts[6] || 0) * 6;
                     case 'tk': return Object.values(counts).some(x => x >= 3) ? sum : 0;
                     case 'fk': return Object.values(counts).some(x => x >= 4) ? sum : 0;
-                    case 'fh': 
-                        const vals = Object.values(counts).sort();
-                        return (vals.length === 2 && vals[0] === 2 && vals[1] === 3) ? 25 : 0;
-                    case 'ss':
-                        const str = unique.join('');
-                        return (/1234|2345|3456/.test(str)) ? 30 : 0;
-                    case 'ls':
-                        return (/12345|23456/.test(unique.join(''))) ? 40 : 0;
+                    case 'fh': return (Object.values(counts).includes(3) && Object.values(counts).includes(2)) || Object.values(counts).includes(5) ? 25 : 0;
+                    case 'ss': return /1234|2345|3456/.test(unique) ? 30 : 0;
+                    case 'ls': return /12345|23456/.test(unique) ? 40 : 0;
                     case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
                     case 'ch': return sum;
                     default: return 0;
@@ -1094,183 +607,125 @@
 
             calculate(pIdx, type) {
                 const p = this.players[pIdx];
-                const upperIds = ['1s', '2s', '3s', '4s', '5s', '6s'];
-                const upperSum = upperIds.reduce((s, id) => s + (p.scores[id] || 0), 0);
-                
-                if (type === 'uSum') return upperSum;
-                if (type === 'bonus') return upperSum >= 63 ? 35 : 0;
-                if (type === 'grand') {
-                    const lowerIds = ['tk', 'fk', 'fh', 'ss', 'ls', 'yz', 'ch'];
-                    const lowerSum = lowerIds.reduce((s, id) => s + (p.scores[id] || 0), 0);
-                    const bonus = upperSum >= 63 ? 35 : 0;
-                    return upperSum + lowerSum + bonus;
-                }
+                const upper = ['1s','2s','3s','4s','5s','6s'].reduce((s, k) => s + (p.scores[k]||0), 0);
+                if (type === 'uSum') return upper;
+                if (type === 'bonus') return upper >= 63 ? 35 : 0;
+                if (type === 'grand') return upper + (upper >= 63 ? 35 : 0) + 
+                    ['tk','fk','fh','ss','ls','yz','ch'].reduce((s, k) => s + (p.scores[k]||0), 0);
+            }
+
+            // Game Management
+            scoreMove(pIdx, id) {
+                if (this.rolls === 0 || this.players[pIdx].scores[id] !== undefined) return;
+                const score = this.calcLogic(id);
+                this.players[pIdx].scores[id] = score;
+                if (id === 'yz' && score === 50) this.playSound('yahtzee'); // Celebrate
+                this.resetDice();
+                this.renderAll();
+                this.playSound('score');
             }
 
             resetDice() {
                 this.rolls = 0;
-                this.held = [false, false, false, false, false];
-                this.dice = [0, 0, 0, 0, 0];
-                
-                // Remove all dice from physics
-                this.diceBodies.forEach(body => {
-                    if (body) Matter.World.remove(this.engine.world, body);
-                });
+                this.held.fill(false);
+                this.dice.fill(0);
+                this.diceBodies.forEach(b => { if(b) Matter.World.remove(this.engine.world, b); });
                 this.diceBodies = [];
-                
                 document.getElementById('rollBtn').disabled = false;
                 document.getElementById('rollCounter').textContent = 'ROLL 0 / 3';
-                document.querySelectorAll('.slot').forEach(s => s.classList.remove('held'));
                 this.updateRack();
+                document.querySelectorAll('.slot').forEach(s => s.classList.remove('held'));
             }
 
-            fullReset() {
-                if (!confirm('Reset the entire game? All scores will be lost!')) return;
-                
-                this.players.forEach(p => p.scores = {});
-                this.resetDice();
-                this.renderAll();
+            manualEntry(pIdx, id, val) {
+                const n = parseInt(val);
+                if (isNaN(n) || n < 0) delete this.players[pIdx].scores[id];
+                else this.players[pIdx].scores[id] = n;
+                this.renderRows();
             }
 
             addPlayer() {
-                if (this.players.length >= 8) {
-                    alert('Maximum 8 players allowed!');
-                    return;
-                }
-                
-                this.players.push({
-                    name: `Player ${this.players.length + 1}`,
-                    color: COLORS[this.players.length % 8],
-                    scores: {}
-                });
-                
+                if (this.players.length >= 8) return alert('Max 8 players');
+                this.players.push({ name: `Player ${this.players.length+1}`, color: COLORS[this.players.length%8], scores: {} });
                 this.renderAll();
             }
-
             removePlayer(idx) {
-                if (this.players.length <= 1) {
-                    alert('Need at least one player!');
-                    return;
-                }
-                
-                if (confirm(`Remove ${this.players[idx].name}?`)) {
+                if (this.players.length > 1 && confirm(`Remove player?`)) {
                     this.players.splice(idx, 1);
                     this.renderAll();
                 }
             }
 
+            // UI Helpers
+            setupDragAndDrop() {
+                const headers = document.querySelectorAll('.col-player');
+                headers.forEach(h => {
+                    h.addEventListener('dragstart', e => { e.dataTransfer.setData('text', h.dataset.idx); });
+                    h.addEventListener('dragover', e => e.preventDefault());
+                    h.addEventListener('drop', e => {
+                        e.preventDefault();
+                        const from = parseInt(e.dataTransfer.getData('text'));
+                        const to = parseInt(h.dataset.idx);
+                        if (from !== to) {
+                            const p = this.players.splice(from, 1)[0];
+                            this.players.splice(to, 0, p);
+                            this.renderAll();
+                        }
+                    });
+                });
+            }
+            setupColorPicker() {
+                const grid = document.getElementById('colorGrid');
+                COLORS.forEach(c => {
+                    const el = document.createElement('div');
+                    el.className = 'color-option';
+                    el.style.background = `var(${c})`;
+                    el.onclick = () => {
+                        if (this.currentColorPickerPlayer !== null) {
+                            this.players[this.currentColorPickerPlayer].color = c;
+                            this.renderAll();
+                            this.closeColorModal();
+                        }
+                    };
+                    grid.appendChild(el);
+                });
+            }
+            openColorPicker(i) { this.currentColorPickerPlayer = i; document.getElementById('colorModal').classList.add('active'); }
+            closeColorModal() { document.getElementById('colorModal').classList.remove('active'); }
             toggleMode() {
                 this.isScorecardOnly = !this.isScorecardOnly;
-                const btn = document.getElementById('modeBtn');
-                const gameArea = document.getElementById('gameArea');
-                
-                if (this.isScorecardOnly) {
-                    btn.textContent = '🎮 Enable Dice';
-                    gameArea.style.display = 'none';
-                } else {
-                    btn.textContent = '📋 Scorecard Only';
-                    gameArea.style.display = 'block';
-                }
-                
+                document.getElementById('gameArea').style.display = this.isScorecardOnly ? 'none' : 'block';
+                document.getElementById('modeBtn').textContent = this.isScorecardOnly ? '🎮 Enable Dice' : '📋 Scorecard Only';
                 this.renderRows();
             }
-
-            toggleTheme() {
-                const current = document.body.dataset.theme;
-                document.body.dataset.theme = current === 'dark' ? 'light' : 'dark';
-            }
-
-            celebrate() {
-                this.playSound('yahtzee');
-                
-                for (let i = 0; i < 50; i++) {
-                    setTimeout(() => {
-                        const confetti = document.createElement('div');
-                        confetti.className = 'confetti';
-                        confetti.style.left = Math.random() * 100 + '%';
-                        confetti.style.background = ['#667eea', '#764ba2', '#f093fb', '#43e97b'][Math.floor(Math.random() * 4)];
-                        confetti.style.animationDelay = Math.random() * 0.5 + 's';
-                        document.body.appendChild(confetti);
-                        
-                        setTimeout(() => confetti.remove(), 3000);
-                    }, i * 30);
-                }
-            }
-
+            toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+            
+            updatePlayerName(idx, val) { this.players[idx].name = val || `Player ${idx+1}`; }
+            
             playSound(type) {
                 try {
-                    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                    const oscillator = audioCtx.createOscillator();
-                    const gainNode = audioCtx.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(audioCtx.destination);
-                    
-                    switch(type) {
-                        case 'roll':
-                            oscillator.frequency.value = 200;
-                            gainNode.gain.value = 0.1;
-                            oscillator.start();
-                            oscillator.stop(audioCtx.currentTime + 0.1);
-                            break;
-                        case 'click':
-                            oscillator.frequency.value = 800;
-                            gainNode.gain.value = 0.05;
-                            oscillator.start();
-                            oscillator.stop(audioCtx.currentTime + 0.05);
-                            break;
-                        case 'score':
-                            oscillator.frequency.value = 600;
-                            gainNode.gain.value = 0.1;
-                            oscillator.start();
-                            oscillator.stop(audioCtx.currentTime + 0.15);
-                            break;
-                        case 'yahtzee':
-                            for (let i = 0; i < 5; i++) {
-                                setTimeout(() => {
-                                    const osc = audioCtx.createOscillator();
-                                    const gain = audioCtx.createGain();
-                                    osc.connect(gain);
-                                    gain.connect(audioCtx.destination);
-                                    osc.frequency.value = 400 + i * 100;
-                                    gain.gain.value = 0.1;
-                                    osc.start();
-                                    osc.stop(audioCtx.currentTime + 0.2);
-                                }, i * 100);
-                            }
-                            break;
-                    }
-                } catch (e) {
-                    // Sound not supported
-                }
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const osc = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    osc.connect(g); g.connect(ctx.destination);
+                    if (type === 'roll') { osc.frequency.value = 200; g.gain.value = 0.1; osc.start(); osc.stop(ctx.currentTime + 0.1); }
+                    if (type === 'click') { osc.frequency.value = 800; g.gain.value = 0.05; osc.start(); osc.stop(ctx.currentTime + 0.05); }
+                    if (type === 'score') { osc.frequency.value = 600; g.gain.value = 0.1; osc.start(); osc.stop(ctx.currentTime + 0.15); }
+                } catch(e) {}
             }
 
             setupKeyboardShortcuts() {
-                document.addEventListener('keydown', (e) => {
+                document.addEventListener('keydown', e => {
                     if (e.target.tagName === 'INPUT') return;
-                    
-                    switch(e.key) {
-                        case ' ':
-                            e.preventDefault();
-                            if (!this.isScorecardOnly) this.roll();
-                            break;
-                        case 'r':
-                            this.resetDice();
-                            break;
-                        case '1':
-                        case '2':
-                        case '3':
-                        case '4':
-                        case '5':
-                            const idx = parseInt(e.key) - 1;
-                            this.toggleHold(idx);
-                            break;
-                    }
+                    if (e.key === ' ' && !this.isScorecardOnly) { e.preventDefault(); this.roll(); }
+                    if (e.key === 'r') this.resetDice();
+                    if (['1','2','3','4','5'].includes(e.key)) this.toggleHold(parseInt(e.key)-1);
                 });
             }
+            
+            fullReset() { if(confirm("Reset everything?")) { this.players.forEach(p => p.scores={}); this.resetDice(); this.renderAll(); } }
         }
 
-        // Initialize game
         const game = new YahtzeeElite();
     </script>
 </body>
