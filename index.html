@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yahtzee Elite 3D Pro | Enhanced Edition</title>
+    <title>Yahtzee Apex | Gold Master</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
@@ -23,7 +23,6 @@
             --warning: #f59e0b;
             --danger: #ef4444;
             --border: #e2e8f0;
-            --radius: 20px;
             --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
             --tray-bg: #1e293b;
         }
@@ -36,7 +35,7 @@
             --text-muted: #94a3b8;
             --border: #334155;
             --primary-light: rgba(99, 102, 241, 0.2);
-            --tray-bg: #000000;
+            --tray-bg: #0b1120;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -50,41 +49,22 @@
             min-height: 100vh;
         }
 
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.02); }
-        }
-
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes scoreReveal {
-            0% { transform: scale(0.8); opacity: 0; }
-            50% { transform: scale(1.1); }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        @keyframes confetti {
-            0% { transform: translateY(0) rotate(0deg); opacity: 1; }
-            100% { transform: translateY(500px) rotate(720deg); opacity: 0; }
-        }
-
         .app-shell {
             max-width: 1440px;
             margin: 0 auto;
             padding: 24px;
             display: grid;
-            grid-template-columns: 1fr 420px;
+            grid-template-columns: 1fr 450px;
             gap: 32px;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.5s;
         }
 
         body.scorecard-focused .app-shell {
             grid-template-columns: 1fr;
-            max-width: 900px;
+            max-width: 1000px;
         }
+
+        body.scorecard-focused .main-stage { display: none !important; }
 
         header {
             grid-column: 1 / -1;
@@ -110,19 +90,14 @@
             transition: all 0.2s;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             font-size: 0.9rem;
-            touch-action: manipulation;
-            position: relative;
         }
-        .btn:hover:not(:disabled) { background: var(--surface-2); transform: translateY(-1px); border-color: var(--text-muted); }
+        .btn:hover:not(:disabled) { background: var(--surface-2); transform: translateY(-1px); }
         .btn-primary { background: var(--primary); color: white; border: none; }
-        .btn-primary:hover:not(:disabled) { background: #4f46e5; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3); }
-        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
-        .btn.rolling { animation: pulse 1.5s infinite; }
-
-        .main-stage { display: flex; flex-direction: column; gap: 24px; animation: slideIn 0.5s ease-out; }
-        body.scorecard-focused .main-stage { display: none; }
+        .btn-icon { padding: 8px; width: 36px; height: 36px; border-radius: 50%; }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
         .tray-viewport {
             width: 100%;
@@ -133,33 +108,7 @@
             position: relative;
             box-shadow: 0 30px 60px -12px rgba(0,0,0,0.3);
             border: 2px solid rgba(255,255,255,0.1);
-            transition: border-color 0.3s;
         }
-
-        .tray-viewport.active { border-color: var(--accent); }
-        .tray-viewport.rolling { border-color: var(--primary); }
-
-        #canvas-3d {
-            width: 100%;
-            height: 100%;
-            touch-action: none;
-        }
-
-        .rolling-overlay {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: rgba(99, 102, 241, 0.95);
-            color: white;
-            padding: 10px 18px;
-            border-radius: 12px;
-            font-weight: 800;
-            font-size: 0.85rem;
-            display: none;
-            animation: pulse 1s infinite;
-        }
-
-        .rolling-overlay.active { display: block; }
 
         .dice-controls {
             background: var(--surface);
@@ -171,10 +120,7 @@
             flex-direction: column;
             align-items: center;
             gap: 20px;
-            transition: opacity 0.3s;
         }
-
-        .dice-controls.disabled { opacity: 0.5; pointer-events: none; }
 
         .rack { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
         .die-slot {
@@ -189,27 +135,15 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            touch-action: manipulation;
-            position: relative;
         }
         .die-slot.held {
             background: var(--primary);
             border-color: var(--primary);
             transform: translateY(-12px);
-            box-shadow: 0 15px 30px rgba(99, 102, 241, 0.4);
+            color: white;
         }
-        .die-slot.held::after {
-            content: '🔒';
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            font-size: 1rem;
-        }
-        .die-slot.held .val { color: white; }
-        .die-slot.held .lbl { color: rgba(255,255,255,0.85); }
-        .die-slot .val { font-size: 2rem; font-weight: 800; transition: all 0.2s; }
-        .die-slot .lbl { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; color: var(--text-muted); }
-        .die-slot:hover:not(.held) { transform: translateY(-4px); border-color: var(--primary); }
+        .die-slot .val { font-size: 2rem; font-weight: 800; }
+        .die-slot .lbl { font-size: 0.65rem; font-weight: 800; text-transform: uppercase; opacity: 0.7; }
 
         .scorecard-container {
             background: var(--surface);
@@ -220,218 +154,119 @@
             display: flex;
             flex-direction: column;
             gap: 24px;
-            animation: slideIn 0.5s ease-out 0.1s backwards;
+            overflow: hidden;
         }
 
-        .score-scroll { overflow-x: auto; margin: 0 -10px; padding: 10px; }
+        .score-scroll {
+            overflow-x: auto;
+            margin: 0 -10px;
+            padding: 10px;
+            scroll-behavior: smooth;
+        }
 
         table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--border);
+            min-width: 120px;
+            text-align: center;
+        }
+        th:first-child, td:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            background: var(--surface);
+            z-index: 5;
+            width: 140px;
+            font-size: 0.9rem;
+        }
+
+        /* Player Header Drag & Drop */
+        .player-header {
+            cursor: grab;
+            position: relative;
+            transition: background 0.2s;
+        }
+        .player-header:active { cursor: grabbing; background: var(--surface-2); }
+        .player-header .remove-btn {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            font-size: 10px;
+            color: var(--danger);
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+            padding: 4px;
+        }
+        .player-header:hover .remove-btn { opacity: 1; }
 
         .active-turn-col {
             background: var(--primary-light) !important;
-            animation: pulse 2s infinite;
+            border-left: 2px solid var(--primary);
+            border-right: 2px solid var(--primary);
         }
-
-        th, td { padding: 14px 10px; border-bottom: 1px solid var(--border); }
-        th { text-align: left; font-size: 0.7rem; text-transform: uppercase; color: var(--text-muted); font-weight: 800; letter-spacing: 1px; }
-
-        .player-header { min-width: 110px; text-align: center; cursor: grab; position: relative; }
-        .player-name-input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            text-align: center;
-            font-family: inherit;
-            font-weight: 800;
-            color: var(--text);
-            font-size: 16px;
-            outline: none;
-            padding: 4px;
-            border-radius: 6px;
-        }
-        .player-name-input:focus { background: var(--surface-2); }
-        .remove-player {
-            position: absolute;
-            top: -8px;
-            right: 2px;
-            color: var(--danger);
-            cursor: pointer;
-            font-size: 14px;
-            opacity: 0;
-            transition: opacity 0.2s;
-        }
-        .player-header:hover .remove-player { opacity: 1; }
-
-        .cat-row:hover { background: var(--surface-2); }
-        .cat-info { font-weight: 700; font-size: 0.9rem; cursor: help; display: flex; align-items: center; gap: 8px; }
-        .cat-info .tip-icon {
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            border: 1.5px solid var(--border);
-            border-radius: 50%;
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .cat-info .tip-icon:hover { background: var(--primary); color: white; border-color: var(--primary); }
 
         .score-cell {
-            text-align: center;
             font-weight: 800;
             cursor: pointer;
-            height: 48px;
+            height: 52px;
             transition: all 0.2s;
-            border-radius: 10px;
+            border-radius: 8px;
             position: relative;
         }
+        .score-cell:hover:not(.locked) { background: rgba(99, 102, 241, 0.1); }
         .score-cell.locked { cursor: default; }
-        .score-cell.hint { color: var(--accent); opacity: 0.6; font-size: 0.95rem; }
-        .score-cell.hint-good { color: var(--accent); }
-        .score-cell.hint-ok { color: var(--warning); }
-        .score-cell.hint-poor { color: var(--danger); }
-        .score-cell:hover:not(.locked) { background: rgba(16, 185, 129, 0.12); transform: scale(1.05); }
-        .score-cell.filled { animation: scoreReveal 0.4s ease-out; }
 
-        .score-cell.editable:not(.locked) {
-            border: 2px dashed var(--border);
+        .hint-text { font-size: 0.95rem; font-weight: 700; transition: color 0.3s; }
+        .hint-bad { color: var(--danger); opacity: 0.7; }
+        .hint-avg { color: var(--warning); opacity: 0.9; }
+        .hint-good { color: var(--accent); opacity: 1; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
+
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .inline-score-input {
+            width: 100%; height: 100%;
+            background: transparent; border: 2px solid transparent;
+            text-align: center; font-family: inherit; font-weight: 800; font-size: 1.1rem;
+            color: var(--text); border-radius: 8px;
+            transition: all 0.2s;
         }
-        .score-cell.editable:hover:not(.locked) {
-            border-color: var(--primary);
-            background: var(--primary-light);
+        .inline-score-input:focus {
+            background: var(--surface); border-color: var(--primary); outline: none;
+            box-shadow: 0 0 0 4px var(--primary-light);
         }
 
-        .total-row { background: var(--surface-2); font-weight: 800; color: var(--primary); }
-
-        .tooltip {
-            position: fixed;
-            background: #0f172a;
-            color: white;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            z-index: 1000;
-            pointer-events: none;
-            max-width: 240px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-            display: none;
-            line-height: 1.5;
+        .player-name-input {
+            width: 100%; background: transparent; border: none; color: var(--text);
+            font-weight: 800; text-align: center; font-family: inherit; font-size: 1rem; cursor: pointer;
         }
+        .player-name-input:focus { background: var(--surface-2); outline: none; border-radius: 4px; }
+        ::selection { background: var(--primary-light); color: var(--primary); }
+
+        .tooltip-trigger { cursor: help; display: inline-flex; align-items: center; gap: 6px; position: relative; }
+        .info-icon {
+            font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--border);
+            border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
+        }
+        .tooltip-popover {
+            position: absolute; background: #1e293b; color: white; padding: 8px 12px;
+            border-radius: 8px; font-size: 0.8rem; z-index: 100; pointer-events: none;
+            opacity: 0; transition: opacity 0.2s; width: max-content; max-width: 200px;
+            left: 100%; top: 50%; transform: translateY(-50%); margin-left: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        .tooltip-trigger:hover .tooltip-popover { opacity: 1; }
 
         .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(4px);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 2000;
-            animation: fadeIn 0.3s;
+            position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);
+            display: none; align-items: center; justify-content: center; z-index: 2000;
         }
-
         .modal-overlay.active { display: flex; }
 
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal {
-            background: var(--surface);
-            border-radius: 24px;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideIn 0.4s ease-out;
-        }
-
-        .modal h2 { font-size: 2rem; margin-bottom: 20px; text-align: center; }
-        .modal p { margin-bottom: 24px; text-align: center; color: var(--text-muted); line-height: 1.6; }
-        .modal .scores { margin: 20px 0; }
-        .modal .score-line {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px;
-            border-radius: 10px;
-            margin-bottom: 8px;
-        }
-        .modal .score-line.winner { background: var(--primary-light); font-weight: 800; font-size: 1.2rem; }
-        .modal .btn-group { display: flex; gap: 12px; margin-top: 24px; }
-        .modal .btn { flex: 1; }
-
-        .confetti-piece {
-            position: fixed;
-            width: 10px;
-            height: 10px;
-            background: var(--primary);
-            animation: confetti 3s ease-out forwards;
-            z-index: 3000;
-        }
-
-        .keyboard-hint {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px 16px;
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            box-shadow: var(--shadow);
-            opacity: 0.7;
-            transition: opacity 0.2s;
-        }
-        .keyboard-hint:hover { opacity: 1; }
-
-        .mobile-tooltip {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: var(--surface);
-            border-top: 2px solid var(--border);
-            padding: 24px;
-            transform: translateY(100%);
-            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1500;
-            box-shadow: 0 -10px 30px rgba(0,0,0,0.1);
-        }
-
-        .mobile-tooltip.active { transform: translateY(0); }
-        .mobile-tooltip h3 { margin-bottom: 12px; font-size: 1.1rem; }
-        .mobile-tooltip p { color: var(--text-muted); line-height: 1.5; }
-        .mobile-tooltip .close-btn {
-            position: absolute;
-            top: 12px;
-            right: 12px;
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: var(--text-muted);
-        }
-
         @media (max-width: 1024px) {
-            .app-shell { grid-template-columns: 1fr; padding: 16px; }
-            .die-slot { width: 60px; height: 80px; }
-            .die-slot .val { font-size: 1.5rem; }
-            .keyboard-hint { display: none; }
-        }
-
-        @media (max-width: 600px) {
-            .logo { font-size: 1.3rem; }
-            .toolbar { gap: 8px; }
-            .btn { padding: 10px 14px; font-size: 0.8rem; }
-            .die-slot { width: 54px; height: 74px; }
+            .app-shell { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -439,11 +274,10 @@
 
 <div class="app-shell">
     <header>
-        <div class="logo"><span>🎲</span> YAHTZEE ELITE PRO</div>
+        <div class="logo"><span>🎲</span> YAHTZEE APEX</div>
         <div class="toolbar">
-            <button class="btn" onclick="game.toggleFocusMode()" id="focusBtn">📋 Scorecard Only</button>
+            <button class="btn" onclick="game.toggleFocusMode()" id="focusBtn">📋 Scorecard Mode</button>
             <button class="btn" onclick="game.undo()" id="undoBtn" disabled>↩ Undo</button>
-            <button class="btn" onclick="game.toggleSound()" id="soundBtn">🔊 Sound</button>
             <button class="btn" onclick="game.toggleTheme()">🌓 Theme</button>
             <button class="btn" style="color: var(--danger)" onclick="game.confirmReset()">♻ Reset</button>
         </div>
@@ -451,19 +285,17 @@
 
     <main class="main-stage">
         <div class="tray-viewport" id="trayViewport">
-            <div class="rolling-overlay" id="rollingOverlay">🎲 Rolling...</div>
-            <div id="canvas-3d"></div>
+            <div id="canvas-3d" style="width: 100%; height: 100%;"></div>
         </div>
 
-        <div class="dice-controls" id="diceControls">
-            <div style="display: flex; justify-content: space-between; width: 100%; align-items: center; padding: 0 10px;">
-                <span id="rollStatus" style="font-weight: 800; font-size: 0.85rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px;">Roll 0 / 3</span>
-                <button class="btn" onclick="game.clearHolds()">🔓 Clear Holds</button>
+        <div class="dice-controls">
+            <div style="display: flex; justify-content: space-between; width: 100%; color: var(--text-muted); font-weight: 800; font-size: 0.8rem;">
+                <span id="rollStatus">ROLL 0 / 3</span>
+                <span onclick="game.clearHolds()" style="cursor: pointer; color: var(--primary)">CLEAR HOLDS</span>
             </div>
-
             <div class="rack" id="diceRack"></div>
-
-            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()" style="padding: 18px 80px; font-size: 1.2rem; letter-spacing: 1px; width: 100%; max-width: 400px;">
+            <button class="btn btn-primary" id="rollBtn" onclick="game.roll()"
+                style="width: 100%; max-width: 400px; height: 65px; font-size: 1.3rem; letter-spacing: 2px; justify-content: center;">
                 ROLL DICE
             </button>
         </div>
@@ -471,283 +303,153 @@
 
     <aside class="scorecard-container">
         <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <button class="btn" onclick="game.prevTurn()" title="Previous Player (Review)">◀</button>
-                <div style="text-align: center; min-width: 120px;">
-                    <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Current Turn</div>
-                    <h2 id="activePlayerDisplay" style="font-size: 1.1rem; font-weight: 800;">Player 1</h2>
+            <div style="display:flex; align-items: center; gap: 10px;">
+                <button class="btn btn-icon" onclick="game.manualPrevTurn()" title="Previous Player">◀</button>
+                <div style="text-align:center; min-width: 100px;">
+                    <div style="font-size: 0.7rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">Active Turn</div>
+                    <h2 id="activePlayerDisplay" style="font-size: 1.2rem;">Player 1</h2>
                 </div>
-                <button class="btn" onclick="game.nextTurn()" title="Next Player (Review)">▶</button>
+                <button class="btn btn-icon" onclick="game.manualNextTurn()" title="Next Player">▶</button>
             </div>
-            <button class="btn btn-primary" onclick="game.addPlayer()">+ Player</button>
+            <button class="btn btn-primary" onclick="game.addPlayer()" style="padding: 8px 16px; font-size: 0.8rem;">+ Player</button>
         </div>
 
-        <div class="score-scroll">
+        <div class="score-scroll" id="scoreScroll">
             <table id="scoreTable">
-                <thead>
-                    <tr id="playerHeaderRow">
-                        <th>Category</th>
-                    </tr>
-                </thead>
+                <thead><tr id="playerHeaderRow"><th>Category</th></tr></thead>
                 <tbody id="scoreTableBody"></tbody>
             </table>
         </div>
     </aside>
 </div>
 
-<div class="tooltip" id="globalTooltip"></div>
-
-<div class="mobile-tooltip" id="mobileTooltip">
-    <button class="close-btn" onclick="game.closeMobileTooltip()">✕</button>
-    <h3 id="tooltipTitle"></h3>
-    <p id="tooltipContent"></p>
-</div>
-
 <div class="modal-overlay" id="gameOverModal">
-    <div class="modal">
+    <div style="background: var(--surface); padding: 40px; border-radius: 28px; width: 90%; max-width: 450px; text-align: center;">
         <h2>🏆 Game Complete!</h2>
-        <div class="scores" id="finalScores"></div>
-        <div class="btn-group">
-            <button class="btn" onclick="game.closeModal()">Close</button>
-            <button class="btn btn-primary" onclick="game.playAgain()">Play Again</button>
-        </div>
+        <div id="finalScores" style="margin: 24px 0;"></div>
+        <button class="btn btn-primary" onclick="location.reload()" style="width: 100%; justify-content: center;">Play Again</button>
     </div>
 </div>
 
 <div class="modal-overlay" id="confirmModal">
-    <div class="modal">
-        <h2 id="confirmTitle">Confirm Action</h2>
-        <p id="confirmMessage"></p>
-        <div class="btn-group">
-            <button class="btn" onclick="game.closeConfirm()">Cancel</button>
-            <button class="btn btn-primary" id="confirmBtn">Confirm</button>
+    <div style="background: var(--surface); padding: 40px; border-radius: 28px; width: 90%; max-width: 400px; text-align: center;">
+        <h2 id="confirmTitle" style="margin-bottom: 12px;">Are you sure?</h2>
+        <p id="confirmText" style="color: var(--text-muted); margin-bottom: 24px;">This action cannot be undone.</p>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button class="btn" onclick="document.getElementById('confirmModal').classList.remove('active')">Cancel</button>
+            <button class="btn btn-primary" id="confirmActionBtn" style="background: var(--danger);">Confirm</button>
         </div>
     </div>
 </div>
 
-<div class="keyboard-hint">
-    ⌨️ Space: Roll | 1-5: Hold | U: Undo | T: Theme
-</div>
-
 <script>
-    const DICE_SIZE = 1.2;
-    const DICE_HALF = DICE_SIZE / 2;
-    const PHYSICS_STEPS = 1 / 60;
-    const SETTLE_THRESHOLD = 0.1;
-    const DEBOUNCE_DELAY = 300;
-
+    // --- Physics & Graphics Engine ---
     class DiceEngine {
         constructor(containerId, onSettle) {
             this.container = document.getElementById(containerId);
             this.onSettle = onSettle;
             this.dice = [];
-            this.walls = {};
             this.isRolling = false;
-            this.isPaused = true;
-            this.faceMaterials = null;
-
-            this.initScene();
-            this.initPhysics();
-            this.createDice();
-            this.animate();
-            this.updateBoundaries();
-
-            this.resizeTimeout = null;
-            window.addEventListener('resize', () => this.debouncedResize());
+            this.init();
         }
 
-        debouncedResize() {
-            clearTimeout(this.resizeTimeout);
-            this.resizeTimeout = setTimeout(() => this.resize(), DEBOUNCE_DELAY);
-        }
-
-        initScene() {
+        init() {
             this.scene = new THREE.Scene();
-            this.scene.background = null;
-
-            this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-            this.camera.position.set(0, 18, 0);
+            this.camera = new THREE.PerspectiveCamera(40, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+            this.camera.position.set(0, 13, 0);
             this.camera.lookAt(0, 0, 0);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
             this.renderer.shadowMap.enabled = true;
-            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             this.container.appendChild(this.renderer.domElement);
 
-            this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-            const sun = new THREE.DirectionalLight(0xffffff, 0.6);
-            sun.position.set(10, 20, 10);
+            this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.5);
+            sun.position.set(5, 15, 5);
             sun.castShadow = true;
-            sun.shadow.camera.left = -15;
-            sun.shadow.camera.right = 15;
-            sun.shadow.camera.top = 15;
-            sun.shadow.camera.bottom = -15;
             this.scene.add(sun);
 
-            const floor = new THREE.Mesh(
-                new THREE.PlaneGeometry(100, 100),
-                new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 })
-            );
-            floor.rotation.x = -Math.PI/2;
-            floor.receiveShadow = true;
-            this.scene.add(floor);
-        }
-
-        initPhysics() {
             this.world = new CANNON.World();
-            this.world.gravity.set(0, -25, 0);
+            this.world.gravity.set(0, -13, 0);
 
-            const ground = new CANNON.Body({ mass: 0 });
-            ground.addShape(new CANNON.Plane());
-            ground.quaternion.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2);
-            this.world.addBody(ground);
+            const groundMat = new CANNON.Material();
+            const diceMat = new CANNON.Material();
+            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { friction: 0.01, restitution: 0.6 }));
 
-            const wallMat = new CANNON.Material();
-            this.walls.top = this.createWallBody(wallMat);
-            this.walls.bottom = this.createWallBody(wallMat);
-            this.walls.left = this.createWallBody(wallMat);
-            this.walls.right = this.createWallBody(wallMat);
+            const floor = new CANNON.Body({ mass: 0, material: groundMat });
+            floor.addShape(new CANNON.Plane());
+            floor.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
+            this.world.addBody(floor);
+
+            // BOUNDARIES: Calculated for Camera Y=13, FOV=40
+            // Limits: X +/- 6.5, Z +/- 4.0
+            const wall = (x, z, axis, angle) => {
+                const b = new CANNON.Body({ mass: 0, material: groundMat });
+                b.addShape(new CANNON.Plane());
+                b.position.set(x, 0, z);
+                b.quaternion.setFromAxisAngle(axis, angle);
+                this.world.addBody(b);
+            };
+            const Y = new CANNON.Vec3(0,1,0);
+            wall(0, -4.0, Y, 0);         // Top Z
+            wall(0, 4.0, Y, Math.PI);    // Bottom Z
+            wall(-6.5, 0, Y, Math.PI/2); // Left X
+            wall(6.5, 0, Y, -Math.PI/2); // Right X
+
+            this.createDice(diceMat);
+            this.animate();
         }
 
-        createWallBody(mat) {
-            const body = new CANNON.Body({ mass: 0, material: mat });
-            this.world.addBody(body);
-            return body;
-        }
-
-        updateBoundaries() {
-            if (!this.container.clientHeight) return;
-
-            const dist = this.camera.position.y;
-            const vFOV = THREE.Math.degToRad(this.camera.fov);
-            const visibleHeight = 2 * Math.tan(vFOV / 2) * dist;
-            const visibleWidth = visibleHeight * (this.container.clientWidth / this.container.clientHeight);
-
-            const w = visibleWidth / 2;
-            const h = visibleHeight / 2;
-            const t = 1;
-
-            this.walls.top.shapes = [];
-            this.walls.top.addShape(new CANNON.Box(new CANNON.Vec3(visibleWidth, 20, t)));
-            this.walls.top.position.set(0, 10, -h - t);
-
-            this.walls.bottom.shapes = [];
-            this.walls.bottom.addShape(new CANNON.Box(new CANNON.Vec3(visibleWidth, 20, t)));
-            this.walls.bottom.position.set(0, 10, h + t);
-
-            this.walls.left.shapes = [];
-            this.walls.left.addShape(new CANNON.Box(new CANNON.Vec3(t, 20, visibleHeight)));
-            this.walls.left.position.set(-w - t, 10, 0);
-
-            this.walls.right.shapes = [];
-            this.walls.right.addShape(new CANNON.Box(new CANNON.Vec3(t, 20, visibleHeight)));
-            this.walls.right.position.set(w + t, 10, 0);
-        }
-
-        createDice() {
-            const geo = new THREE.BoxGeometry(DICE_SIZE, DICE_SIZE, DICE_SIZE, 3, 3, 3);
-            this.faceMaterials = this.getDiceMaterials();
-
+        createDice(material) {
+            const geo = new THREE.BoxGeometry(1.3, 1.3, 1.3); // Size tuned
+            const mats = this.getDiceTextures();
             for(let i=0; i<5; i++) {
-                const mesh = new THREE.Mesh(geo, this.faceMaterials);
+                const mesh = new THREE.Mesh(geo, mats);
                 mesh.castShadow = true;
-                mesh.userData.index = i;
-                mesh.userData.held = false;
-
                 const body = new CANNON.Body({
-                    mass: 1.2,
-                    shape: new CANNON.Box(new CANNON.Vec3(DICE_HALF, DICE_HALF, DICE_HALF)),
-                    linearDamping: 0.01,
-                    angularDamping: 0.01
+                    mass: 1, material: material,
+                    shape: new CANNON.Box(new CANNON.Vec3(0.65, 0.65, 0.65)),
+                    linearDamping: 0.1, angularDamping: 0.1
                 });
-                body.position.set((i-2)*1.8, 1.5, 0);
-
-                this.dice.push({ mesh, body });
+                body.position.set((i-2)*2, 2, 0);
+                this.dice.push({mesh, body});
                 this.scene.add(mesh);
                 this.world.addBody(body);
             }
         }
 
-        getDiceMaterials() {
-            const createFace = (n) => {
-                const canvas = document.createElement('canvas');
-                canvas.width = 256; canvas.height = 256;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.roundRect(0, 0, 256, 256, 40);
-                ctx.fill();
-                ctx.fillStyle = '#1e293b';
-                const dot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 22, 0, Math.PI*2); ctx.fill(); };
-                if (n === 1) dot(128,128);
-                if (n === 2) { dot(64,64); dot(192,192); }
-                if (n === 3) { dot(64,64); dot(128,128); dot(192,192); }
-                if (n === 4) { dot(64,64); dot(192,64); dot(64,192); dot(192,192); }
-                if (n === 5) { dot(64,64); dot(192,64); dot(64,192); dot(192,192); dot(128,128); }
-                if (n === 6) { dot(64,64); dot(64,128); dot(64,192); dot(192,64); dot(192,128); dot(192,192); }
-                return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), roughness: 0.3 });
-            };
-            return [1, 6, 2, 5, 3, 4].map(v => createFace(v));
-        }
-
-        updateHeldVisuals(heldIndices) {
-            this.dice.forEach((d, i) => {
-                const isHeld = heldIndices.includes(i);
-                d.mesh.userData.held = isHeld;
-
-                if (isHeld) {
-                    const green = new THREE.Color(0x10b981);
-                    d.mesh.children.forEach(child => {
-                        if (child.type === 'Mesh') child.material.emissive = green;
-                    });
-                } else {
-                    d.mesh.children.forEach(child => {
-                        if (child.type === 'Mesh') child.material.emissive = new THREE.Color(0x000000);
-                    });
-                }
+        getDiceTextures() {
+            return [1,6,2,5,3,4].map(n => {
+                const c = document.createElement('canvas'); c.width=128; c.height=128;
+                const x = c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,128,128);
+                x.fillStyle='#1e293b';
+                const d = (u,v) => { x.beginPath(); x.arc(u,v,13,0,Math.PI*2); x.fill(); };
+                if(n%2) d(64,64);
+                if(n>1) { d(32,32); d(96,96); }
+                if(n>3) { d(96,32); d(32,96); }
+                if(n==6) { d(32,64); d(96,64); }
+                return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c) });
             });
         }
 
-        roll(heldIndices) {
+        roll(held) {
             this.isRolling = true;
-            this.isPaused = false;
-
             this.dice.forEach((d, i) => {
-                if (heldIndices.includes(i)) return;
-
-                d.body.position.set(Math.random()*2-1, 8 + i*0.3, Math.random()*2-1);
-                d.body.velocity.set(Math.random()*15-7.5, 5, Math.random()*15-7.5);
-                d.body.angularVelocity.set(Math.random()*30, Math.random()*30, Math.random()*30);
-                d.body.allowSleep = true;
+                if(held.includes(i)) return;
+                d.body.position.set(Math.random()*8 - 4, 8 + i, Math.random()*4 - 2); // Tight spawn
+                d.body.velocity.set(Math.random()*10-5, 5, Math.random()*10-5);
+                d.body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
             });
-        }
-
-        resetPhysics() {
-            this.dice.forEach((d, i) => {
-                d.body.position.set((i-2)*1.8, 1.5, 0);
-                d.body.velocity.set(0,0,0);
-                d.body.angularVelocity.set(0,0,0);
-                d.body.quaternion.set(0,0,0,1);
-            });
-            this.isPaused = true;
         }
 
         getValues() {
-            const ups = [
-                { v: 1, d: new THREE.Vector3(1,0,0) },
-                { v: 6, d: new THREE.Vector3(-1,0,0) },
-                { v: 2, d: new THREE.Vector3(0,1,0) },
-                { v: 5, d: new THREE.Vector3(0,-1,0) },
-                { v: 3, d: new THREE.Vector3(0,0,1) },
-                { v: 4, d: new THREE.Vector3(0,0,-1) }
-            ];
+            const vectors = [{v:1, d:new THREE.Vector3(1,0,0)}, {v:6, d:new THREE.Vector3(-1,0,0)}, {v:2, d:new THREE.Vector3(0,1,0)}, {v:5, d:new THREE.Vector3(0,-1,0)}, {v:3, d:new THREE.Vector3(0,0,1)}, {v:4, d:new THREE.Vector3(0,0,-1)}];
             return this.dice.map(d => {
                 let max = -1, val = 1;
-                ups.forEach(u => {
-                    const world = u.d.clone().applyQuaternion(d.mesh.quaternion);
-                    if (world.y > max) { max = world.y; val = u.v; }
+                vectors.forEach(u => {
+                    const w = u.d.clone().applyQuaternion(d.mesh.quaternion);
+                    if(w.y > max) { max = w.y; val = u.v; }
                 });
                 return val;
             });
@@ -755,121 +457,46 @@
 
         animate() {
             requestAnimationFrame(() => this.animate());
-
-            if (!this.isPaused) {
-                this.world.step(PHYSICS_STEPS);
-            }
-
+            this.world.step(1/60);
             let moving = false;
             this.dice.forEach(d => {
                 d.mesh.position.copy(d.body.position);
                 d.mesh.quaternion.copy(d.body.quaternion);
-                if (d.body.velocity.length() > SETTLE_THRESHOLD) moving = true;
+                if(d.body.velocity.length() > 0.05) moving = true;
             });
-
-            if (this.isRolling && !moving) {
+            if(this.isRolling && !moving) {
                 this.isRolling = false;
-                this.isPaused = true;
                 this.onSettle(this.getValues());
             }
-
             this.renderer.render(this.scene, this.camera);
         }
 
         resize() {
-            if (!this.container.clientWidth) return;
             this.camera.aspect = this.container.clientWidth / this.container.clientHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
-            this.updateBoundaries();
         }
     }
 
+    // --- Game Logic ---
     const RULES = [
-        { id: '1s', name: 'Ones', tip: 'Total of all ones' },
-        { id: '2s', name: 'Twos', tip: 'Total of all twos' },
-        { id: '3s', name: 'Threes', tip: 'Total of all threes' },
-        { id: '4s', name: 'Fours', tip: 'Total of all fours' },
-        { id: '5s', name: 'Fives', tip: 'Total of all fives' },
-        { id: '6s', name: 'Sixes', tip: 'Total of all sixes' },
+        { id: '1s', name: 'Ones', max: 5, tip: 'Sum of Ones (Max 5)' },
+        { id: '2s', name: 'Twos', max: 10, tip: 'Sum of Twos (Max 10)' },
+        { id: '3s', name: 'Threes', max: 15, tip: 'Sum of Threes (Max 15)' },
+        { id: '4s', name: 'Fours', max: 20, tip: 'Sum of Fours (Max 20)' },
+        { id: '5s', name: 'Fives', max: 25, tip: 'Sum of Fives (Max 25)' },
+        { id: '6s', name: 'Sixes', max: 30, tip: 'Sum of Sixes (Max 30)' },
         { id: 'uSum', name: 'Upper Total', calc: true },
-        { id: 'bonus', name: 'Bonus (+35)', calc: true },
-        { id: '3k', name: '3 of a Kind', tip: 'Sum of all dice if 3 match' },
-        { id: '4k', name: '4 of a Kind', tip: 'Sum of all dice if 4 match' },
-        { id: 'fh', name: 'Full House', tip: '25 points for 3 of a kind + pair' },
-        { id: 'ss', name: 'Small Straight', tip: '30 points for sequence of 4' },
-        { id: 'ls', name: 'Large Straight', tip: '40 points for sequence of 5' },
-        { id: 'yz', name: 'Yahtzee', tip: '50 points for 5 of a kind' },
-        { id: 'ch', name: 'Chance', tip: 'Sum of all dice' },
+        { id: 'bonus', name: 'Bonus', calc: true, tip: '+35 pts if Upper > 63' },
+        { id: '3k', name: '3 of a Kind', max: 30, tip: 'Sum dice if 3 match' },
+        { id: '4k', name: '4 of a Kind', max: 30, tip: 'Sum dice if 4 match' },
+        { id: 'fh', name: 'Full House', max: 25, fixed: true, tip: '3 of a kind + Pair (25 pts)' },
+        { id: 'ss', name: 'Sm. Straight', max: 30, fixed: true, tip: 'Sequence of 4 (30 pts)' },
+        { id: 'ls', name: 'Lg. Straight', max: 40, fixed: true, tip: 'Sequence of 5 (40 pts)' },
+        { id: 'yz', name: 'Yahtzee', max: 50, fixed: true, tip: '5 of a Kind (50 pts)' },
+        { id: 'ch', name: 'Chance', max: 30, tip: 'Sum of all dice' },
         { id: 'grand', name: 'Grand Total', calc: true }
     ];
-
-    class AudioEngine {
-        constructor() {
-            this.enabled = true;
-            this.context = null;
-            this.initContext();
-        }
-
-        initContext() {
-            try {
-                this.context = new (window.AudioContext || window.webkitAudioContext)();
-            } catch(e) {
-                console.warn('Audio not supported');
-            }
-        }
-
-        play(type) {
-            if (!this.enabled || !this.context) return;
-
-            const osc = this.context.createOscillator();
-            const gain = this.context.createGain();
-            osc.connect(gain);
-            gain.connect(this.context.destination);
-
-            switch(type) {
-                case 'roll':
-                    osc.frequency.value = 200;
-                    gain.gain.setValueAtTime(0.3, this.context.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.5);
-                    osc.start(this.context.currentTime);
-                    osc.stop(this.context.currentTime + 0.5);
-                    break;
-                case 'click':
-                    osc.frequency.value = 400;
-                    gain.gain.setValueAtTime(0.2, this.context.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.1);
-                    osc.start(this.context.currentTime);
-                    osc.stop(this.context.currentTime + 0.1);
-                    break;
-                case 'score':
-                    osc.frequency.value = 600;
-                    gain.gain.setValueAtTime(0.25, this.context.currentTime);
-                    gain.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + 0.3);
-                    osc.start(this.context.currentTime);
-                    osc.stop(this.context.currentTime + 0.3);
-                    break;
-                case 'yahtzee':
-                    [0, 0.1, 0.2].forEach((delay, i) => {
-                        const o = this.context.createOscillator();
-                        const g = this.context.createGain();
-                        o.connect(g);
-                        g.connect(this.context.destination);
-                        o.frequency.value = 800 + (i * 200);
-                        g.gain.setValueAtTime(0.3, this.context.currentTime + delay);
-                        g.gain.exponentialRampToValueAtTime(0.01, this.context.currentTime + delay + 0.4);
-                        o.start(this.context.currentTime + delay);
-                        o.stop(this.context.currentTime + delay + 0.4);
-                    });
-                    break;
-            }
-        }
-
-        toggle() {
-            this.enabled = !this.enabled;
-            return this.enabled;
-        }
-    }
 
     class YahtzeeElite {
         constructor() {
@@ -879,216 +506,86 @@
             this.held = [];
             this.values = [1, 1, 1, 1, 1];
             this.history = [];
-            this.audio = new AudioEngine();
-
-            this.engine = new DiceEngine('canvas-3d', (v) => this.onDiceSettle(v));
+            this.engine = new DiceEngine('canvas-3d', (v) => this.onSettle(v));
             this.initUI();
             this.render();
-            this.setupTooltips();
-            this.setupKeyboard();
+            setTimeout(() => this.engine.resize(), 100);
         }
 
         initUI() {
             const rack = document.getElementById('diceRack');
-            for(let i=0; i<5; i++) {
+            for (let i = 0; i < 5; i++) {
                 const slot = document.createElement('div');
                 slot.className = 'die-slot';
                 slot.id = `slot-${i}`;
                 slot.onclick = () => this.toggleHold(i);
-                slot.innerHTML = `<span class="val" id="dv-${i}">-</span><span class="lbl">Hold</span>`;
+                slot.innerHTML = `<span class="val" id="dv-${i}">-</span><span class="lbl" id="dl-${i}">HOLD</span>`;
                 rack.appendChild(slot);
             }
         }
 
-        setupKeyboard() {
-            document.addEventListener('keydown', (e) => {
-                if (e.target.tagName === 'INPUT') return;
-
-                switch(e.key.toLowerCase()) {
-                    case ' ':
-                    case 'enter':
-                        e.preventDefault();
-                        this.roll();
-                        break;
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                        e.preventDefault();
-                        this.toggleHold(parseInt(e.key) - 1);
-                        break;
-                    case 'u':
-                        e.preventDefault();
-                        this.undo();
-                        break;
-                    case 't':
-                        e.preventDefault();
-                        this.toggleTheme();
-                        break;
-                }
-            });
-        }
-
-        setupTooltips() {
-            const tt = document.getElementById('globalTooltip');
-            const mtt = document.getElementById('mobileTooltip');
-            const isMobile = 'ontouchstart' in window;
-
-            document.body.addEventListener(isMobile ? 'click' : 'mouseover', (e) => {
-                const icon = e.target.closest('.tip-icon');
-                if (icon) {
-                    const info = icon.closest('.cat-info');
-                    const tip = info.dataset.tip;
-                    if (!tip) return;
-
-                    if (isMobile) {
-                        e.preventDefault();
-                        document.getElementById('tooltipTitle').textContent = info.textContent.replace('?', '').trim();
-                        document.getElementById('tooltipContent').textContent = tip;
-                        mtt.classList.add('active');
-                    } else {
-                        tt.textContent = tip;
-                        tt.style.display = 'block';
-                        tt.style.left = (e.pageX + 12) + 'px';
-                        tt.style.top = (e.pageY + 12) + 'px';
-                    }
-                }
-            });
-
-            if (!isMobile) {
-                document.body.addEventListener('mouseout', (e) => {
-                    if (e.target.closest('.tip-icon')) {
-                        tt.style.display = 'none';
-                    }
-                });
-            }
-        }
-
-        closeMobileTooltip() {
-            document.getElementById('mobileTooltip').classList.remove('active');
-        }
-
         roll() {
             if (this.rolls >= 3 || this.engine.isRolling) return;
-
-            this.audio.play('roll');
             this.rolls++;
             this.engine.roll(this.held);
-            this.updateStatus();
-
-            document.getElementById('rollBtn').classList.add('rolling');
-            document.getElementById('rollingOverlay').classList.add('active');
-            document.getElementById('trayViewport').classList.add('rolling');
-            document.getElementById('diceControls').classList.add('disabled');
+            document.getElementById('rollBtn').disabled = true;
+            document.getElementById('rollStatus').textContent = `ROLL ${this.rolls} / 3`;
         }
 
-        onDiceSettle(vals) {
+        onSettle(vals) {
             this.values = vals;
-            vals.forEach((v, i) => {
-                const el = document.getElementById(`dv-${i}`);
-                el.textContent = v;
-                el.parentElement.classList.add('filled');
-                setTimeout(() => el.parentElement.classList.remove('filled'), 400);
-            });
-
-            if (vals.every(v => v === vals[0])) {
-                this.audio.play('yahtzee');
-                this.celebrateYahtzee();
-            }
-
-            document.getElementById('rollBtn').classList.remove('rolling');
-            document.getElementById('rollingOverlay').classList.remove('active');
-            document.getElementById('trayViewport').classList.remove('rolling');
-            document.getElementById('diceControls').classList.remove('disabled');
-            document.getElementById('trayViewport').classList.add('active');
-
-            this.updateStatus();
+            vals.forEach((v, i) => document.getElementById(`dv-${i}`).textContent = v);
+            document.getElementById('rollBtn').disabled = (this.rolls >= 3);
             this.render();
-        }
-
-        celebrateYahtzee() {
-            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-            for(let i=0; i<30; i++) {
-                setTimeout(() => {
-                    const piece = document.createElement('div');
-                    piece.className = 'confetti-piece';
-                    piece.style.left = Math.random() * window.innerWidth + 'px';
-                    piece.style.top = '-10px';
-                    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    document.body.appendChild(piece);
-                    setTimeout(() => piece.remove(), 3000);
-                }, i * 30);
-            }
         }
 
         toggleHold(i) {
             if (this.rolls === 0 || this.engine.isRolling) return;
-
-            this.audio.play('click');
             const idx = this.held.indexOf(i);
-            if (idx > -1) this.held.splice(idx, 1);
-            else this.held.push(i);
-
+            if (idx > -1) this.held.splice(idx, 1); else this.held.push(i);
+            const isHeld = this.held.includes(i);
             const slot = document.getElementById(`slot-${i}`);
-            slot.classList.toggle('held', this.held.includes(i));
-            this.engine.updateHeldVisuals(this.held);
+            slot.classList.toggle('held', isHeld);
+            document.getElementById(`dl-${i}`).textContent = isHeld ? 'HELD' : 'HOLD';
         }
 
         clearHolds() {
             this.held = [];
-            document.querySelectorAll('.die-slot').forEach(s => s.classList.remove('held'));
-            this.engine.updateHeldVisuals([]);
+            document.querySelectorAll('.die-slot').forEach(s => {
+                s.classList.remove('held');
+                s.querySelector('.lbl').textContent = 'HOLD';
+            });
         }
 
-        clearTray() {
-            this.held = [];
-            this.values = [1,1,1,1,1];
-            document.querySelectorAll('.die-slot').forEach(s => s.classList.remove('held'));
-            document.querySelectorAll('.val').forEach(v => v.textContent = '-');
-            this.engine.resetPhysics();
-            this.engine.updateHeldVisuals([]);
-            document.getElementById('trayViewport').classList.remove('active');
-        }
-
-        score(pIdx, catId) {
-            if (document.body.classList.contains('scorecard-focused')) {
-                const current = this.players[pIdx].scores[catId];
-                const rule = RULES.find(r => r.id === catId);
-                const input = prompt(`Enter score for ${rule.name}:`, current !== undefined ? current : '');
-
-                if (input === null) return;
-
-                const val = parseInt(input);
-                if (!isNaN(val) && val >= 0) {
-                     this.players[pIdx].scores[catId] = val;
-                     this.render();
-                     this.checkGameComplete();
+        score(pIdx, catId, manualVal = null) {
+            if (manualVal !== null) {
+                if(manualVal === "") {
+                    delete this.players[pIdx].scores[catId];
+                } else {
+                    let val = parseInt(manualVal);
+                    if(isNaN(val)) val = 0;
+                    const rule = RULES.find(r => r.id === catId);
+                    if(val < 0) val = 0;
+                    if(rule.max && val > rule.max) val = rule.max;
+                    if(rule.fixed) val = (Math.abs(val - rule.max) < Math.abs(val - 0)) ? rule.max : 0;
+                    this.players[pIdx].scores[catId] = val;
                 }
+                this.render();
                 return;
             }
 
             if (pIdx !== this.turnIdx || this.rolls === 0 || this.players[pIdx].scores[catId] !== undefined) return;
-
-            this.history.push(JSON.stringify({ players: this.players, turn: this.turnIdx, rolls: this.rolls }));
-            document.getElementById('undoBtn').disabled = false;
-
-            const scoreValue = this.calcValue(catId, this.values);
-            this.players[pIdx].scores[catId] = scoreValue;
-
-            this.audio.play('score');
+            this.history.push(JSON.stringify(this.players));
+            this.players[pIdx].scores[catId] = this.calc(catId, this.values);
             this.nextTurn();
-            this.checkGameComplete();
         }
 
-        calcValue(id, dice) {
+        calc(id, dice) {
             const sum = dice.reduce((a, b) => a + b, 0);
-            const counts = {};
-            dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
-            const unique = [...new Set(dice)].sort((a,b)=>a-b).join('');
-
+            const counts = {}; dice.forEach(d => counts[d] = (counts[d] || 0) + 1);
+            const u = [...new Set(dice)].sort().join('');
             switch(id) {
-                case '1s': return (counts[1] || 0) * 1;
+                case '1s': return (counts[1] || 0);
                 case '2s': return (counts[2] || 0) * 2;
                 case '3s': return (counts[3] || 0) * 3;
                 case '4s': return (counts[4] || 0) * 4;
@@ -1097,148 +594,179 @@
                 case '3k': return Object.values(counts).some(c => c >= 3) ? sum : 0;
                 case '4k': return Object.values(counts).some(c => c >= 4) ? sum : 0;
                 case 'fh': return Object.values(counts).includes(3) && Object.values(counts).includes(2) ? 25 : 0;
-                case 'ss': return /1234|2345|3456/.test(unique) ? 30 : 0;
-                case 'ls': return /12345|23456/.test(unique) ? 40 : 0;
+                case 'ss': return /1234|2345|3456/.test(u) ? 30 : 0;
+                case 'ls': return /12345|23456/.test(u) ? 40 : 0;
                 case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
                 case 'ch': return sum;
                 default: return 0;
             }
         }
 
-        getScoreQuality(catId, dice) {
-            const val = this.calcValue(catId, dice);
-            const maxPossible = {
-                '1s': 5, '2s': 10, '3s': 15, '4s': 20, '5s': 25, '6s': 30,
-                '3k': 30, '4k': 30, 'fh': 25, 'ss': 30, 'ls': 40, 'yz': 50, 'ch': 30
-            };
-
-            const max = maxPossible[catId] || 30;
-            const ratio = val / max;
-
-            if (ratio >= 0.7) return 'good';
-            if (ratio >= 0.4) return 'ok';
-            return 'poor';
+        getHintColor(id, val) {
+            const rule = RULES.find(r => r.id === id);
+            if (!rule || !rule.max) return 'hint-text';
+            const ratio = val / rule.max;
+            if (ratio >= 0.7) return 'hint-good';
+            if (ratio >= 0.4) return 'hint-avg';
+            return 'hint-bad';
         }
 
-        nextTurn() {
-            this.rolls = 0;
+        manualNextTurn() {
             this.turnIdx = (this.turnIdx + 1) % this.players.length;
-            this.clearTray();
-            this.updateStatus();
             this.render();
+            this.syncSnap();
         }
-
-        prevTurn() {
+        manualPrevTurn() {
             this.turnIdx = (this.turnIdx - 1 + this.players.length) % this.players.length;
             this.render();
+            this.syncSnap();
+        }
+        nextTurn() {
+            this.rolls = 0;
+            this.clearHolds();
+            this.turnIdx = (this.turnIdx + 1) % this.players.length;
+            document.querySelectorAll('.val').forEach(v => v.textContent = '-');
+            document.getElementById('rollStatus').textContent = `ROLL 0 / 3`;
+            document.getElementById('rollBtn').disabled = false;
+            this.render();
+            this.syncSnap();
         }
 
-        updateStatus() {
-            const btn = document.getElementById('rollBtn');
-            btn.disabled = this.rolls >= 3 || this.engine.isRolling;
-            document.getElementById('rollStatus').textContent = `Roll ${this.rolls} / 3`;
-        }
-
-        checkGameComplete() {
-            const scorableRules = RULES.filter(r => !r.calc);
-            const allComplete = this.players.every(p =>
-                scorableRules.every(r => p.scores[r.id] !== undefined)
-            );
-
-            if (allComplete) {
-                setTimeout(() => this.showGameOver(), 500);
+        syncSnap() {
+            const scroll = document.getElementById('scoreScroll');
+            const activeCol = document.querySelector('.active-turn-col');
+            if (activeCol) {
+                const left = activeCol.offsetLeft - (scroll.clientWidth / 2) + (activeCol.clientWidth / 2);
+                scroll.scrollTo({ left: left, behavior: 'smooth' });
             }
         }
 
-        showGameOver() {
-            const scores = this.players.map((p, i) => ({
-                name: p.name,
-                score: this.getCalcScore(i, 'grand'),
-                index: i
-            })).sort((a, b) => b.score - a.score);
-
-            const html = scores.map((s, i) => `
-                <div class="score-line ${i === 0 ? 'winner' : ''}">
-                    <span>${i === 0 ? '🏆' : `${i + 1}.`} ${s.name}</span>
-                    <span>${s.score}</span>
-                </div>
-            `).join('');
-
-            document.getElementById('finalScores').innerHTML = html;
-            document.getElementById('gameOverModal').classList.add('active');
-
-            this.celebrateYahtzee();
+        renamePlayer(idx, name) { this.players[idx].name = name; }
+        addPlayer() {
+            if (this.players.length < 8) {
+                this.players.push({ name: `Player ${this.players.length + 1}`, scores: {} });
+                this.render();
+            }
         }
 
-        closeModal() {
-            document.getElementById('gameOverModal').classList.remove('active');
+        confirmReset() {
+            document.getElementById('confirmTitle').textContent = "Reset Game?";
+            document.getElementById('confirmText').textContent = "All scores will be lost.";
+            document.getElementById('confirmActionBtn').onclick = () => location.reload();
+            document.getElementById('confirmModal').classList.add('active');
         }
 
-        playAgain() {
-            this.players.forEach(p => p.scores = {});
-            this.turnIdx = 0;
-            this.rolls = 0;
-            this.history = [];
-            this.closeModal();
-            this.clearTray();
+        confirmRemovePlayer(idx) {
+            document.getElementById('confirmTitle').textContent = `Remove ${this.players[idx].name}?`;
+            document.getElementById('confirmText').textContent = "Their scores will be deleted.";
+            document.getElementById('confirmActionBtn').onclick = () => {
+                this.removePlayer(idx);
+                document.getElementById('confirmModal').classList.remove('active');
+            };
+            document.getElementById('confirmModal').classList.add('active');
+        }
+
+        removePlayer(idx) {
+            if(this.players.length > 1) {
+                this.players.splice(idx, 1);
+                if(this.turnIdx >= this.players.length) this.turnIdx = this.players.length - 1;
+                this.render();
+            }
+        }
+
+        // Drag and Drop Logic
+        dragStart(e, idx) {
+            this.dragSrcIdx = idx;
+            e.dataTransfer.effectAllowed = 'move';
+        }
+        dragDrop(e, idx) {
+            if(this.dragSrcIdx === idx) return;
+            const item = this.players[this.dragSrcIdx];
+            this.players.splice(this.dragSrcIdx, 1);
+            this.players.splice(idx, 0, item);
+
+            // Adjust turn index if needed
+            if(this.turnIdx === this.dragSrcIdx) this.turnIdx = idx;
+            else if(this.turnIdx > this.dragSrcIdx && this.turnIdx <= idx) this.turnIdx--;
+            else if(this.turnIdx < this.dragSrcIdx && this.turnIdx >= idx) this.turnIdx++;
+
             this.render();
         }
 
+        undo() {
+            if (this.history.length === 0) return;
+            this.players = JSON.parse(this.history.pop());
+            this.render();
+        }
+
+        toggleFocusMode() {
+            document.body.classList.toggle('scorecard-focused');
+            const isFocus = document.body.classList.contains('scorecard-focused');
+            document.getElementById('focusBtn').textContent = isFocus ? '🎮 Game Mode' : '📋 Scorecard Mode';
+            if(!isFocus) setTimeout(() => this.engine.resize(), 100);
+            this.render();
+        }
+
+        toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
+
         render() {
-            const pHeader = document.getElementById('playerHeaderRow');
-            pHeader.innerHTML = '<th>Category</th>' + this.players.map((p, i) => `
-                <th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}"
-                    draggable="true"
-                    ondragstart="game.drag(${i})"
-                    ondragover="event.preventDefault()"
-                    ondrop="game.drop(${i})">
-                    <span class="remove-player" onclick="game.confirmRemovePlayer(${i})">✕</span>
-                    <input class="player-name-input"
-                           value="${p.name}"
-                           onchange="game.renamePlayer(${i}, this.value)"
-                           onclick="this.select()">
-                </th>`).join('');
+            const isFocus = document.body.classList.contains('scorecard-focused');
+
+            // Header with Drag & Delete
+            const head = document.getElementById('playerHeaderRow');
+            head.innerHTML = '<th>Category</th>' + this.players.map((p, i) =>
+                `<th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}"
+                     draggable="true"
+                     ondragstart="game.dragStart(event, ${i})"
+                     ondragover="event.preventDefault()"
+                     ondrop="game.dragDrop(event, ${i})">
+                    <span class="remove-btn" onclick="game.confirmRemovePlayer(${i})">✕</span>
+                    <input class="player-name-input" type="text" value="${p.name}"
+                           onfocus="this.select()"
+                           oninput="game.renamePlayer(${i}, this.value)">
+                </th>`
+            ).join('');
 
             const body = document.getElementById('scoreTableBody');
             body.innerHTML = '';
 
-            RULES.forEach(rule => {
+            RULES.forEach(r => {
                 const tr = document.createElement('tr');
-                tr.className = rule.calc ? 'total-row' : 'cat-row';
-
-                let html = `<td class="cat-info" data-tip="${rule.tip || ''}">
-                    ${rule.name}
-                    ${rule.tip ? '<span class="tip-icon">?</span>' : ''}
+                let html = `<td class="tooltip-trigger">
+                    ${r.name} ${r.tip ? `<span class="info-icon">?</span><div class="tooltip-popover">${r.tip}</div>` : ''}
                 </td>`;
-
                 this.players.forEach((p, pi) => {
-                    const val = p.scores[rule.id];
-
-                    if (rule.calc) {
-                        html += `<td class="score-cell locked ${pi === this.turnIdx ? 'active-turn-col' : ''}">${this.getCalcScore(pi, rule.id)}</td>`;
+                    const score = p.scores[r.id];
+                    const isActive = (pi === this.turnIdx);
+                    const cellClass = isActive ? 'active-turn-col' : '';
+                    if (r.calc) {
+                        const val = this.getCalc(pi, r.id);
+                        html += `<td class="${cellClass}" style="font-weight: 800; color: var(--primary)">${val}</td>`;
                     } else {
-                        const isActivePlayer = pi === this.turnIdx;
-                        const hasRolled = this.rolls > 0;
-                        const isHint = isActivePlayer && hasRolled && val === undefined;
-                        const hintValue = isHint ? this.calcValue(rule.id, this.values) : '';
-                        const quality = isHint ? this.getScoreQuality(rule.id, this.values) : '';
-                        const display = val !== undefined ? val : hintValue;
-
-                        const editableClass = document.body.classList.contains('scorecard-focused') ? 'editable' : '';
-
-                        html += `<td class="score-cell ${val !== undefined ? 'locked' : ''} ${isHint ? 'hint hint-' + quality : ''} ${pi === this.turnIdx ? 'active-turn-col' : ''} ${editableClass}"
-                                     onclick="game.score(${pi}, '${rule.id}')">${display}</td>`;
+                        if (isFocus) {
+                            html += `<td class="${cellClass}">
+                                <input class="inline-score-input" type="number" value="${score ?? ''}"
+                                       min="0" max="${r.max || ''}" placeholder="-"
+                                       onchange="game.score(${pi}, '${r.id}', this.value)">
+                            </td>`;
+                        } else {
+                            const val = this.calc(r.id, this.values);
+                            const hintClass = (isActive && this.rolls > 0 && score === undefined) ? this.getHintColor(r.id, val) : '';
+                            const display = (isActive && this.rolls > 0 && score === undefined)
+                                ? `<span class="hint-text ${hintClass}">${val}</span>` : (score ?? '');
+                            html += `<td class="score-cell ${cellClass} ${score !== undefined ? 'locked' : ''}"
+                                         onclick="game.score(${pi}, '${r.id}')">${display}</td>`;
+                        }
                     }
                 });
-
                 tr.innerHTML = html;
                 body.appendChild(tr);
             });
-
             document.getElementById('activePlayerDisplay').textContent = this.players[this.turnIdx].name;
+            document.getElementById('undoBtn').disabled = (this.history.length === 0);
         }
 
-        getCalcScore(pi, id) {
+        getCalc(pi, id) {
             const p = this.players[pi];
             const u = ['1s','2s','3s','4s','5s','6s'].reduce((a,c) => a + (p.scores[c]||0), 0);
             if (id === 'uSum') return u;
@@ -1246,108 +774,10 @@
             const l = ['3k','4k','fh','ss','ls','yz','ch'].reduce((a,c) => a + (p.scores[c]||0), 0);
             if (id === 'grand') return u + (u >= 63 ? 35 : 0) + l;
         }
-
-        undo() {
-            if (this.history.length === 0) return;
-
-            const state = JSON.parse(this.history.pop());
-            this.players = state.players;
-            this.turnIdx = state.turn;
-            this.rolls = state.rolls || 0;
-
-            if (this.history.length === 0) document.getElementById('undoBtn').disabled = true;
-
-            this.clearTray();
-            this.render();
-        }
-
-        renamePlayer(i, val) {
-            this.players[i].name = val || `Player ${i+1}`;
-            this.render();
-        }
-
-        addPlayer() {
-            if(this.players.length < 8) {
-                this.players.push({ name: `Player ${this.players.length+1}`, scores: {} });
-                this.render();
-            }
-        }
-
-        confirmRemovePlayer(i) {
-            if (this.players.length === 1) {
-                alert('Cannot remove the last player!');
-                return;
-            }
-
-            this.showConfirm(
-                'Remove Player',
-                `Remove ${this.players[i].name}? This cannot be undone.`,
-                () => this.removePlayer(i)
-            );
-        }
-
-        removePlayer(i) {
-            this.players.splice(i, 1);
-            this.turnIdx = Math.min(this.turnIdx, this.players.length - 1);
-            this.render();
-        }
-
-        drag(i) { this.dragIdx = i; }
-
-        drop(i) {
-            const p = this.players.splice(this.dragIdx, 1)[0];
-            this.players.splice(i, 0, p);
-            if (this.turnIdx === this.dragIdx) this.turnIdx = i;
-            this.render();
-        }
-
-        toggleFocusMode() {
-            document.body.classList.toggle('scorecard-focused');
-            const focused = document.body.classList.contains('scorecard-focused');
-            document.getElementById('focusBtn').textContent = focused ? '🎮 Game Mode' : '📋 Scorecard Only';
-
-            setTimeout(() => {
-                this.engine.resize();
-            }, 550);
-        }
-
-        toggleSound() {
-            const enabled = this.audio.toggle();
-            document.getElementById('soundBtn').textContent = enabled ? '🔊 Sound' : '🔇 Muted';
-        }
-
-        toggleTheme() {
-            document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark';
-        }
-
-        confirmReset() {
-            const currentScores = this.players.map(p =>
-                `${p.name}: ${this.getCalcScore(this.players.indexOf(p), 'grand')}`
-            ).join('\n');
-
-            this.showConfirm(
-                'Reset Game',
-                `Clear all game data and restart?\n\nCurrent scores:\n${currentScores}`,
-                () => location.reload()
-            );
-        }
-
-        showConfirm(title, message, onConfirm) {
-            document.getElementById('confirmTitle').textContent = title;
-            document.getElementById('confirmMessage').textContent = message;
-            document.getElementById('confirmBtn').onclick = () => {
-                onConfirm();
-                this.closeConfirm();
-            };
-            document.getElementById('confirmModal').classList.add('active');
-        }
-
-        closeConfirm() {
-            document.getElementById('confirmModal').classList.remove('active');
-        }
     }
 
     const game = new YahtzeeElite();
+    window.addEventListener('resize', () => game.engine.resize());
 </script>
 
 </body>
