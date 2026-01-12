@@ -343,59 +343,63 @@
 </div>
 
 <script>
-    // --- Physics & Graphics Engine ---
+// --- Physics & Graphics Engine ---
     class DiceEngine {
         constructor(containerId, onSettle) {
             this.container = document.getElementById(containerId);
             this.onSettle = onSettle;
             this.dice = [];
             this.isRolling = false;
-            this.targetPositions = new Array(5).fill(null); // For slide animations
+            this.targetPositions = new Array(5).fill(null);
             this.init();
         }
 
         init() {
             this.scene = new THREE.Scene();
+            
+            // Fixed Camera position to ensure boundaries are predictable
             this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-            this.camera.position.set(0, 15, 2); 
-            this.camera.lookAt(0, 0, -1);
+            this.camera.position.set(0, 16, 4); 
+            this.camera.lookAt(0, -2, -0.5);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
             this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             this.container.appendChild(this.renderer.domElement);
 
             this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const sun = new THREE.DirectionalLight(0xffffff, 0.5);
-            sun.position.set(10, 20, 5);
+            const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+            sun.position.set(5, 15, 5);
             sun.castShadow = true;
             this.scene.add(sun);
 
             this.world = new CANNON.World();
-            this.world.gravity.set(0, -35, 0); // Heavy gravity
+            this.world.gravity.set(0, -45, 0); // Snappy, heavy gravity
 
             const groundMat = new CANNON.Material();
             const diceMat = new CANNON.Material();
-            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { friction: 0.6, restitution: 0.2 }));
+            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { 
+                friction: 0.8, 
+                restitution: 0.1 
+            }));
 
-            const floor = new CANNON.Body({ mass: 0, material: groundMat });
-            floor.addShape(new CANNON.Plane());
-            floor.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
-            this.world.addBody(floor);
-
-            // BOUNDARIES: Strict walls to keep dice in view
-            const wall = (x, z, axis, angle) => {
-                const b = new CANNON.Body({ mass: 0, material: groundMat });
-                b.addShape(new CANNON.Plane());
-                b.position.set(x, 0, z);
-                b.quaternion.setFromAxisAngle(axis, angle);
-                this.world.addBody(b);
+            // TIGHT BOUNDARY BOX (X: +/- 7, Z: -5.5 to 4.2)
+            // Creating physical walls with thickness to prevent escape
+            const createBox = (w, h, d, x, y, z) => {
+                const body = new CANNON.Body({ mass: 0, material: groundMat });
+                body.addShape(new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)));
+                body.position.set(x, y, z);
+                this.world.addBody(body);
             };
-            const Y = new CANNON.Vec3(0, 1, 0);
-            wall(0, -5.5, Y, 0);          // Back Wall
-            wall(0, 4.5, Y, Math.PI);     // Front Wall
-            wall(-7.5, 0, Y, Math.PI / 2); // Left Wall
-            wall(7.5, 0, Y, -Math.PI / 2); // Right Wall
+
+            // Tray Floor
+            createBox(30, 1, 30, 0, -0.5, 0); 
+            // Tray Walls (Strictly containment-focused)
+            createBox(30, 10, 1, 0, 5, -6.5);  // Back Wall (Top)
+            createBox(30, 10, 1, 0, 5, 5.0);   // Front Wall (Bottom - The "Cliff" fix)
+            createBox(1, 10, 30, -8.5, 5, 0);  // Left Wall
+            createBox(1, 10, 30, 8.5, 5, 0);   // Right Wall
 
             this.createDice(diceMat);
             this.animate();
@@ -408,10 +412,13 @@
                 const mesh = new THREE.Mesh(geo, mats);
                 mesh.castShadow = true;
                 const body = new CANNON.Body({
-                    mass: 1, material: material,
+                    mass: 2.0, 
+                    material: material,
                     shape: new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)),
-                    linearDamping: 0.2, angularDamping: 0.2
+                    linearDamping: 0.3, 
+                    angularDamping: 0.3
                 });
+                // Initial spawn
                 body.position.set((i-2)*2, 1, 0);
                 this.dice.push({mesh, body});
                 this.scene.add(mesh);
@@ -422,8 +429,9 @@
         getDiceTextures() {
             return [1,6,2,5,3,4].map(n => {
                 const c = document.createElement('canvas'); c.width=128; c.height=128;
-                const x = c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,128,128);
-                x.strokeStyle = '#ddd'; x.lineWidth = 4; x.strokeRect(0,0,128,128);
+                const x = c.getContext('2d'); 
+                x.fillStyle='#ffffff'; x.fillRect(0,0,128,128);
+                x.strokeStyle = '#e2e8f0'; x.lineWidth = 6; x.strokeRect(0,0,128,128);
                 x.fillStyle='#1e293b';
                 const d = (u,v) => { x.beginPath(); x.arc(u,v,14,0,Math.PI*2); x.fill(); };
                 if(n%2) d(64,64);
@@ -438,16 +446,16 @@
             this.isRolling = true;
             this.dice.forEach((d, i) => {
                 if (held.includes(i)) {
-                    // Start slide to bottom "Rack" formation
+                    // Transition to visual rack at the bottom of the tray
                     d.body.type = CANNON.Body.STATIC;
-                    this.targetPositions[i] = new CANNON.Vec3((i - 2) * 1.6, 0.6, 3.5);
+                    this.targetPositions[i] = new CANNON.Vec3((i - 2) * 1.7, 0.6, 3.8);
                 } else {
-                    // Release and roll
                     d.body.type = CANNON.Body.DYNAMIC;
                     this.targetPositions[i] = null;
-                    d.body.position.set(Math.random() * 4 - 2, 8 + i, -3); // Spawn at back
-                    d.body.velocity.set(Math.random() * 10 - 5, 2, 8 + Math.random() * 5); // Toss forward
-                    d.body.angularVelocity.set(Math.random() * 20, Math.random() * 20, Math.random() * 20);
+                    // Respawn at the top of the view and toss down
+                    d.body.position.set(Math.random() * 6 - 3, 8 + i, -5); 
+                    d.body.velocity.set(Math.random() * 10 - 5, 2, 14 + Math.random() * 5); 
+                    d.body.angularVelocity.set(Math.random() * 25, Math.random() * 25, Math.random() * 25);
                 }
             });
         }
@@ -458,9 +466,9 @@
             let moving = false;
 
             this.dice.forEach((d, i) => {
-                // Smooth slide transition for held dice
+                // Smooth interpolation for held dice
                 if (this.targetPositions[i]) {
-                    d.body.position.lerp(this.targetPositions[i], 0.15, d.body.position);
+                    d.body.position.lerp(this.targetPositions[i], 0.25, d.body.position);
                     d.body.velocity.set(0,0,0);
                     d.body.angularVelocity.set(0,0,0);
                 }
@@ -468,7 +476,8 @@
                 d.mesh.position.copy(d.body.position);
                 d.mesh.quaternion.copy(d.body.quaternion);
 
-                if (d.body.type === CANNON.Body.DYNAMIC && d.body.velocity.length() > 0.1) {
+                // Check settle threshold
+                if (d.body.type === CANNON.Body.DYNAMIC && d.body.velocity.length() > 0.2) {
                     moving = true;
                 }
             });
@@ -554,7 +563,6 @@
         }
 
         onSettle(vals) {
-            // Data Integrity: Maintain held values exactly
             vals.forEach((v, i) => {
                 if (!this.held.includes(i)) this.values[i] = v;
                 document.getElementById(`dv-${i}`).textContent = this.values[i];
@@ -568,7 +576,7 @@
             const idx = this.held.indexOf(i);
             if (idx > -1) {
                 this.held.splice(idx, 1);
-                this.engine.dice[i].body.type = CANNON.Body.DYNAMIC; // Re-enable physics
+                this.engine.dice[i].body.type = CANNON.Body.DYNAMIC;
                 this.engine.targetPositions[i] = null;
             } else {
                 this.held.push(i);
