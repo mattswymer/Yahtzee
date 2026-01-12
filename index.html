@@ -3,10 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Yahtzee Apex | Gold Master</title>
+    <meta name="description" content="Yahtzee Apex - Professional 3D Dice Game">
+    <title>Yahtzee Apex | Gold Master v10</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
@@ -18,11 +20,12 @@
             --text: #0f172a;
             --text-muted: #64748b;
             --primary: #6366f1;
-            --primary-light: rgba(99, 102, 241, 0.1);
+            --primary-dark: #4f46e5;
+            --primary-light: #e0e7ff;
             --accent: #10b981;
             --warning: #f59e0b;
             --danger: #ef4444;
-            --border: #e2e8f0;
+            --border: #cbd5e1;
             --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
             --tray-bg: #1e293b;
         }
@@ -34,7 +37,7 @@
             --text: #f8fafc;
             --text-muted: #94a3b8;
             --border: #334155;
-            --primary-light: rgba(99, 102, 241, 0.2);
+            --primary-light: rgba(99, 102, 241, 0.15);
             --tray-bg: #0b1120;
         }
 
@@ -162,90 +165,110 @@
             margin: 0 -10px;
             padding: 10px;
             scroll-behavior: smooth;
+            /* Hide scrollbar for cleaner look */
+            scrollbar-width: none;
         }
+        .score-scroll::-webkit-scrollbar { display: none; }
 
-        table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        th, td {
-            padding: 12px 10px;
-            border-bottom: 1px solid var(--border);
-            min-width: 120px;
-            text-align: center;
+        /* --- TABLE STYLES --- */
+        table { 
+            width: 100%; 
+            border-collapse: separate; 
+            border-spacing: 0; 
         }
+        
+        tr:nth-child(even) td, tr:nth-child(even) th { background: rgba(0,0,0,0.02); }
+        [data-theme="dark"] tr:nth-child(even) td, 
+        [data-theme="dark"] tr:nth-child(even) th { background: rgba(255,255,255,0.03); }
+
+        th, td {
+            padding: 0; 
+            height: 54px;
+            border-bottom: 1px solid var(--border);
+            min-width: 130px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        
         th:first-child, td:first-child {
             text-align: left;
             position: sticky;
             left: 0;
             background: var(--surface);
             z-index: 5;
-            width: 140px;
+            width: 160px;
             font-size: 0.9rem;
+            border-right: 2px solid var(--border);
+            padding-left: 12px;
         }
+        tr:nth-child(even) th:first-child, tr:nth-child(even) td:first-child { background: var(--surface-2); }
+        [data-theme="dark"] tr:nth-child(even) th:first-child, 
+        [data-theme="dark"] tr:nth-child(even) td:first-child { background: #151e2e; }
 
-        /* Player Header Drag & Drop */
         .player-header {
-            cursor: grab;
             position: relative;
-            transition: background 0.2s;
+            cursor: grab;
+            padding: 10px !important;
         }
-        .player-header:active { cursor: grabbing; background: var(--surface-2); }
+        .player-header:active { cursor: grabbing; }
         .player-header .remove-btn {
-            position: absolute;
-            top: 2px;
-            right: 4px;
-            font-size: 10px;
-            color: var(--danger);
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.2s;
-            padding: 4px;
+            position: absolute; top: 4px; right: 4px; font-size: 10px;
+            color: var(--danger); cursor: pointer; opacity: 0;
+            transition: opacity 0.2s; padding: 4px;
         }
         .player-header:hover .remove-btn { opacity: 1; }
 
         .active-turn-col {
             background: var(--primary-light) !important;
-            border-left: 2px solid var(--primary);
-            border-right: 2px solid var(--primary);
+            box-shadow: inset 0 0 0 1px var(--primary); 
+        }
+        .active-badge {
+            font-size: 0.6rem; background: var(--primary); color: white;
+            padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+            position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
         }
 
-        .score-cell {
-            font-weight: 800;
-            cursor: pointer;
-            height: 52px;
-            transition: all 0.2s;
-            border-radius: 8px;
-            position: relative;
+        .cell-wrapper {
+            width: 100%; height: 100%;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer; position: relative;
         }
-        .score-cell:hover:not(.locked) { background: rgba(99, 102, 241, 0.1); }
-        .score-cell.locked { cursor: default; }
-
-        .hint-text { font-size: 0.95rem; font-weight: 700; transition: color 0.3s; }
-        .hint-bad { color: var(--danger); opacity: 0.7; }
-        .hint-avg { color: var(--warning); opacity: 0.9; }
-        .hint-good { color: var(--accent); opacity: 1; text-shadow: 0 0 10px rgba(16, 185, 129, 0.3); }
-
-        input[type=number]::-webkit-inner-spin-button,
-        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        .score-val { font-weight: 800; font-size: 1.1rem; }
+        .score-hint {
+            font-size: 0.9rem; font-weight: 700; padding: 4px 12px;
+            border-radius: 20px; transition: all 0.2s;
+            background: rgba(0,0,0,0.05); color: var(--text-muted);
+        }
+        [data-theme="dark"] .score-hint { background: rgba(255,255,255,0.1); }
+        
+        .score-hint.good { background: rgba(16, 185, 129, 0.15); color: var(--accent); }
+        .score-hint.bad { background: rgba(239, 68, 68, 0.1); color: var(--danger); opacity: 0.8; }
+        
+        .cell-wrapper:hover .score-hint { transform: scale(1.1); }
+        .cell-wrapper.locked { cursor: default; }
+        .cell-wrapper.locked:hover { background: none; }
 
         .inline-score-input {
             width: 100%; height: 100%;
-            background: transparent; border: 2px solid transparent;
-            text-align: center; font-family: inherit; font-weight: 800; font-size: 1.1rem;
-            color: var(--text); border-radius: 8px;
-            transition: all 0.2s;
+            background: transparent; 
+            border: none; outline: none;
+            text-align: center; 
+            font-family: inherit; font-weight: 800; font-size: 1.1rem;
+            color: var(--text); padding: 0; margin: 0;
+            border-bottom: 2px solid transparent;
+            transition: border-color 0.2s;
         }
-        .inline-score-input:focus {
-            background: var(--surface); border-color: var(--primary); outline: none;
-            box-shadow: 0 0 0 4px var(--primary-light);
-        }
+        .inline-score-input:focus { border-bottom-color: var(--primary); }
 
         .player-name-input {
             width: 100%; background: transparent; border: none; color: var(--text);
             font-weight: 800; text-align: center; font-family: inherit; font-size: 1rem; cursor: pointer;
         }
-        .player-name-input:focus { background: var(--surface-2); outline: none; border-radius: 4px; }
+        .player-name-input:focus { outline: none; text-decoration: underline; }
         ::selection { background: var(--primary-light); color: var(--primary); }
 
-        .tooltip-trigger { cursor: help; display: inline-flex; align-items: center; gap: 6px; position: relative; }
+        .tooltip-trigger { cursor: help; display: inline-flex; align-items: center; gap: 8px; }
         .info-icon {
             font-size: 0.7rem; color: var(--text-muted); border: 1px solid var(--border);
             border-radius: 50%; width: 16px; height: 16px; display: flex; align-items: center; justify-content: center;
@@ -264,6 +287,16 @@
             display: none; align-items: center; justify-content: center; z-index: 2000;
         }
         .modal-overlay.active { display: flex; }
+        
+        .close-modal-btn {
+            position: absolute; top: 15px; right: 15px;
+            background: var(--surface-2); border: none;
+            width: 32px; height: 32px; border-radius: 50%;
+            font-size: 1.2rem; cursor: pointer; color: var(--text);
+            display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s;
+        }
+        .close-modal-btn:hover { background: var(--danger); color: white; }
 
         @media (max-width: 1024px) {
             .app-shell { grid-template-columns: 1fr; }
@@ -279,7 +312,7 @@
             <button class="btn" onclick="game.toggleFocusMode()" id="focusBtn">📋 Scorecard Mode</button>
             <button class="btn" onclick="game.undo()" id="undoBtn" disabled>↩ Undo</button>
             <button class="btn" onclick="game.toggleTheme()">🌓 Theme</button>
-            <button class="btn" style="color: var(--danger)" onclick="game.confirmReset()">♻ Reset</button>
+            <button class="btn" style="color: var(--danger)" onclick="game.confirmReset()">♻ New Game</button>
         </div>
     </header>
 
@@ -291,7 +324,7 @@
         <div class="dice-controls">
             <div style="display: flex; justify-content: space-between; width: 100%; color: var(--text-muted); font-weight: 800; font-size: 0.8rem;">
                 <span id="rollStatus">ROLL 0 / 3</span>
-                <span onclick="game.clearHolds()" style="cursor: pointer; color: var(--primary)">CLEAR HOLDS</span>
+                <span onclick="game.clearHolds()" style="cursor: pointer; color: var(--primary)">CLEAR KEEPERS</span>
             </div>
             <div class="rack" id="diceRack"></div>
             <button class="btn btn-primary" id="rollBtn" onclick="game.roll()"
@@ -324,7 +357,8 @@
 </div>
 
 <div class="modal-overlay" id="gameOverModal">
-    <div style="background: var(--surface); padding: 40px; border-radius: 28px; width: 90%; max-width: 450px; text-align: center;">
+    <div style="background: var(--surface); padding: 40px; border-radius: 28px; width: 90%; max-width: 450px; text-align: center; position: relative;">
+        <button class="close-modal-btn" onclick="game.closeModal()">×</button>
         <h2>🏆 Game Complete!</h2>
         <div id="finalScores" style="margin: 24px 0;"></div>
         <button class="btn btn-primary" onclick="location.reload()" style="width: 100%; justify-content: center;">Play Again</button>
@@ -356,8 +390,6 @@
 
         init() {
             this.scene = new THREE.Scene();
-            
-            // Fixed Camera position to ensure boundaries are predictable
             this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
             this.camera.position.set(0, 16, 4); 
             this.camera.lookAt(0, -2, -0.5);
@@ -375,17 +407,12 @@
             this.scene.add(sun);
 
             this.world = new CANNON.World();
-            this.world.gravity.set(0, -45, 0); // Snappy, heavy gravity
+            this.world.gravity.set(0, -45, 0); 
 
             const groundMat = new CANNON.Material();
             const diceMat = new CANNON.Material();
-            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { 
-                friction: 0.8, 
-                restitution: 0.1 
-            }));
+            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { friction: 0.8, restitution: 0.1 }));
 
-            // TIGHT BOUNDARY BOX (X: +/- 7, Z: -5.5 to 4.2)
-            // Creating physical walls with thickness to prevent escape
             const createBox = (w, h, d, x, y, z) => {
                 const body = new CANNON.Body({ mass: 0, material: groundMat });
                 body.addShape(new CANNON.Box(new CANNON.Vec3(w/2, h/2, d/2)));
@@ -393,13 +420,11 @@
                 this.world.addBody(body);
             };
 
-            // Tray Floor
             createBox(30, 1, 30, 0, -0.5, 0); 
-            // Tray Walls (Strictly containment-focused)
-            createBox(30, 10, 1, 0, 5, -6.5);  // Back Wall (Top)
-            createBox(30, 10, 1, 0, 5, 5.0);   // Front Wall (Bottom - The "Cliff" fix)
-            createBox(1, 10, 30, -8.5, 5, 0);  // Left Wall
-            createBox(1, 10, 30, 8.5, 5, 0);   // Right Wall
+            createBox(30, 10, 1, 0, 5, -6.5);  
+            createBox(30, 10, 1, 0, 5, 5.0);   
+            createBox(1, 10, 30, -8.5, 5, 0);  
+            createBox(1, 10, 30, 8.5, 5, 0);   
 
             this.createDice(diceMat);
             this.animate();
@@ -412,15 +437,12 @@
                 const mesh = new THREE.Mesh(geo, mats);
                 mesh.castShadow = true;
                 const body = new CANNON.Body({
-                    mass: 2.0, 
-                    material: material,
+                    mass: 2.0, material: material,
                     shape: new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)),
-                    linearDamping: 0.3, 
-                    angularDamping: 0.3
+                    linearDamping: 0.3, angularDamping: 0.3
                 });
-                // Initial spawn
                 body.position.set((i-2)*2, 1, 0);
-                this.dice.push({mesh, body});
+                this.dice.push({mesh, body, val: 1});
                 this.scene.add(mesh);
                 this.world.addBody(body);
             }
@@ -442,17 +464,44 @@
             });
         }
 
+        setOrientation(body, val) {
+            const q = new CANNON.Quaternion();
+            switch(val) {
+                case 1: q.setFromAxisAngle(new CANNON.Vec3(0,0,1), Math.PI/2); break; 
+                case 6: q.setFromAxisAngle(new CANNON.Vec3(0,0,1), -Math.PI/2); break; 
+                case 2: q.set(0,0,0,1); break; 
+                case 5: q.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI); break; 
+                case 3: q.setFromAxisAngle(new CANNON.Vec3(1,0,0), -Math.PI/2); break; 
+                case 4: q.setFromAxisAngle(new CANNON.Vec3(1,0,0), Math.PI/2); break; 
+            }
+            body.quaternion.copy(q);
+            body.angularVelocity.set(0,0,0);
+        }
+
+        setHeldStatus(i, isHeld, val) {
+            const d = this.dice[i];
+            if(isHeld) {
+                d.body.type = CANNON.Body.KINEMATIC;
+                this.targetPositions[i] = new CANNON.Vec3((i - 2) * 1.7, 0.6, 3.8);
+                d.val = val; 
+                this.setOrientation(d.body, val);
+            } else {
+                d.body.type = CANNON.Body.DYNAMIC;
+                this.targetPositions[i] = null;
+                d.body.wakeUp();
+            }
+        }
+
         roll(held) {
             this.isRolling = true;
             this.dice.forEach((d, i) => {
                 if (held.includes(i)) {
-                    // Transition to visual rack at the bottom of the tray
-                    d.body.type = CANNON.Body.STATIC;
+                    d.body.type = CANNON.Body.KINEMATIC;
                     this.targetPositions[i] = new CANNON.Vec3((i - 2) * 1.7, 0.6, 3.8);
+                    this.setOrientation(d.body, d.val);
                 } else {
                     d.body.type = CANNON.Body.DYNAMIC;
                     this.targetPositions[i] = null;
-                    // Respawn at the top of the view and toss down
                     d.body.position.set(Math.random() * 6 - 3, 8 + i, -5); 
                     d.body.velocity.set(Math.random() * 10 - 5, 2, 14 + Math.random() * 5); 
                     d.body.angularVelocity.set(Math.random() * 25, Math.random() * 25, Math.random() * 25);
@@ -464,24 +513,16 @@
             requestAnimationFrame(() => this.animate());
             this.world.step(1/60);
             let moving = false;
-
             this.dice.forEach((d, i) => {
-                // Smooth interpolation for held dice
                 if (this.targetPositions[i]) {
                     d.body.position.lerp(this.targetPositions[i], 0.25, d.body.position);
                     d.body.velocity.set(0,0,0);
                     d.body.angularVelocity.set(0,0,0);
                 }
-
                 d.mesh.position.copy(d.body.position);
                 d.mesh.quaternion.copy(d.body.quaternion);
-
-                // Check settle threshold
-                if (d.body.type === CANNON.Body.DYNAMIC && d.body.velocity.length() > 0.2) {
-                    moving = true;
-                }
+                if (d.body.type === CANNON.Body.DYNAMIC && d.body.velocity.length() > 0.2) moving = true;
             });
-
             if (this.isRolling && !moving) {
                 this.isRolling = false;
                 this.onSettle(this.getValues());
@@ -497,6 +538,7 @@
                     const w = u.d.clone().applyQuaternion(d.mesh.quaternion);
                     if(w.y > max) { max = w.y; val = u.v; }
                 });
+                d.val = val;
                 return val;
             });
         }
@@ -520,17 +562,20 @@
         { id: 'bonus', name: 'Bonus', calc: true, tip: '+35 pts if Upper > 63' },
         { id: '3k', name: '3 of a Kind', max: 30, tip: 'Sum dice if 3 match' },
         { id: '4k', name: '4 of a Kind', max: 30, tip: 'Sum dice if 4 match' },
-        { id: 'fh', name: 'Full House', max: 25, fixed: true, tip: '3 of a kind + Pair (25 pts)' },
-        { id: 'ss', name: 'Sm. Straight', max: 30, fixed: true, tip: 'Sequence of 4 (30 pts)' },
-        { id: 'ls', name: 'Lg. Straight', max: 40, fixed: true, tip: 'Sequence of 5 (40 pts)' },
-        { id: 'yz', name: 'Yahtzee', max: 50, fixed: true, tip: '5 of a Kind (50 pts)' },
+        { id: 'fh', name: 'Full House', fixed: 25, tip: '3 of a kind + Pair (25 pts)' },
+        { id: 'ss', name: 'Sm. Straight', fixed: 30, tip: 'Sequence of 4 (30 pts)' },
+        { id: 'ls', name: 'Lg. Straight', fixed: 40, tip: 'Sequence of 5 (40 pts)' },
+        { id: 'yz', name: 'Yahtzee', fixed: 50, tip: '5 of a Kind (50 pts)' },
+        { id: 'yb', name: 'Yahtzee Bonus', check: true, tip: '100pts per extra Yahtzee' },
         { id: 'ch', name: 'Chance', max: 30, tip: 'Sum of all dice' },
         { id: 'grand', name: 'Grand Total', calc: true }
     ];
 
+    const PLAYABLE_CATS = ['1s','2s','3s','4s','5s','6s','3k','4k','fh','ss','ls','yz','ch'];
+
     class YahtzeeElite {
         constructor() {
-            this.players = [{ name: 'Player 1', scores: {} }];
+            this.players = [{ name: 'Player 1', scores: {}, bonusCount: 0 }];
             this.turnIdx = 0;
             this.rolls = 0;
             this.held = [];
@@ -549,7 +594,7 @@
                 slot.className = 'die-slot';
                 slot.id = `slot-${i}`;
                 slot.onclick = () => this.toggleHold(i);
-                slot.innerHTML = `<span class="val" id="dv-${i}">-</span><span class="lbl" id="dl-${i}">HOLD</span>`;
+                slot.innerHTML = `<span class="val" id="dv-${i}">-</span><span class="lbl" id="dl-${i}">KEEP</span>`;
                 rack.appendChild(slot);
             }
         }
@@ -574,50 +619,132 @@
         toggleHold(i) {
             if (this.rolls === 0 || this.engine.isRolling) return;
             const idx = this.held.indexOf(i);
-            if (idx > -1) {
-                this.held.splice(idx, 1);
-                this.engine.dice[i].body.type = CANNON.Body.DYNAMIC;
-                this.engine.targetPositions[i] = null;
-            } else {
-                this.held.push(i);
-            }
+            if (idx > -1) this.held.splice(idx, 1);
+            else this.held.push(i);
+
             const isHeld = this.held.includes(i);
+            this.engine.setHeldStatus(i, isHeld, this.values[i]); 
             const slot = document.getElementById(`slot-${i}`);
             slot.classList.toggle('held', isHeld);
-            document.getElementById(`dl-${i}`).textContent = isHeld ? 'HELD' : 'HOLD';
+            document.getElementById(`dl-${i}`).textContent = isHeld ? 'KEEPER' : 'KEEP';
         }
 
         clearHolds() {
-            this.held.forEach(i => {
-                this.engine.dice[i].body.type = CANNON.Body.DYNAMIC;
-                this.engine.targetPositions[i] = null;
-            });
+            this.held.forEach(i => this.engine.setHeldStatus(i, false, this.values[i]));
             this.held = [];
             document.querySelectorAll('.die-slot').forEach(s => {
                 s.classList.remove('held');
-                s.querySelector('.lbl').textContent = 'HOLD';
+                s.querySelector('.lbl').textContent = 'KEEP';
             });
         }
 
+        // Handle Clicking the Yahtzee Bonus Box
+        toggleBonus(pIdx) {
+            const p = this.players[pIdx];
+            p.bonusCount = (p.bonusCount || 0) + 1;
+            if (p.bonusCount > 13) p.bonusCount = 0; // Cycle back to 0
+            this.render();
+        }
+
         score(pIdx, catId, manualVal = null) {
+            // Manual Scorecard Mode
             if (manualVal !== null) {
-                if(manualVal === "") {
-                    delete this.players[pIdx].scores[catId];
-                } else {
+                if(manualVal === "") delete this.players[pIdx].scores[catId];
+                else {
                     let val = parseInt(manualVal);
                     if(isNaN(val)) val = 0;
+
+                    // STRICT VALIDATION
                     const rule = RULES.find(r => r.id === catId);
-                    if(val < 0) val = 0;
-                    if(rule.max && val > rule.max) val = rule.max;
+                    if (rule) {
+                        // Cap Max Values (e.g. Ones max 5)
+                        if (rule.max && val > rule.max) val = rule.max;
+                        // Fixed Values (e.g. Full House is 25 or 0)
+                        if (rule.fixed && val > 0) val = rule.fixed;
+                    }
+
                     this.players[pIdx].scores[catId] = val;
                 }
                 this.render();
                 return;
             }
+
+            // Game Mode Logic
             if (pIdx !== this.turnIdx || this.rolls === 0 || this.players[pIdx].scores[catId] !== undefined) return;
-            this.history.push(JSON.stringify(this.players));
+            
+            const p = this.players[pIdx];
+            const isYahtzee = new Set(this.values).size === 1;
+            const dieVal = this.values[0];
+
+            if (isYahtzee && p.scores['yz'] !== undefined) {
+                if (p.scores['yz'] === 50) {
+                    p.bonusCount = (p.bonusCount || 0) + 1;
+                }
+                const upperKey = ['1s','2s','3s','4s','5s','6s'][dieVal - 1];
+                const isUpperOpen = p.scores[upperKey] === undefined;
+                
+                if (isUpperOpen) {
+                    if (catId !== upperKey) {
+                        alert(`Joker Rule: You must fill the ${upperKey} box!`);
+                        return;
+                    }
+                } else {
+                    const lowerKeys = ['3k','4k','fh','ss','ls','yz','ch'];
+                    const isLower = lowerKeys.includes(catId);
+                    if (isLower) {
+                        if(catId === 'fh') this.players[pIdx].scores[catId] = 25;
+                        else if(catId === 'ss') this.players[pIdx].scores[catId] = 30;
+                        else if(catId === 'ls') this.players[pIdx].scores[catId] = 40;
+                        else this.players[pIdx].scores[catId] = this.calc(catId, this.values);
+                        this.finishTurn();
+                        return;
+                    } 
+                }
+            }
+
             this.players[pIdx].scores[catId] = this.calc(catId, this.values);
-            this.nextTurn();
+            this.finishTurn();
+        }
+
+        finishTurn() {
+            this.history.push(JSON.stringify(this.players));
+            if(this.checkGameOver()) {
+                this.render();
+                this.showGameOver();
+            } else {
+                this.nextTurn();
+            }
+        }
+
+        checkGameOver() {
+            return this.players.every(p => 
+                PLAYABLE_CATS.every(cat => p.scores[cat] !== undefined)
+            );
+        }
+
+        showGameOver() {
+            const finalDiv = document.getElementById('finalScores');
+            let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+            const sortedPlayers = [...this.players].sort((a,b) => 
+                this.getCalc(this.players.indexOf(b), 'grand') - this.getCalc(this.players.indexOf(a), 'grand')
+            );
+            sortedPlayers.forEach((p, i) => {
+                const idx = this.players.indexOf(p);
+                const score = this.getCalc(idx, 'grand');
+                html += `
+                    <div style="background:var(--surface-2); padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; border: 2px solid ${i===0 ? 'var(--warning)' : 'var(--border)'}">
+                        <div style="font-weight:700;">${i===0 ? '👑 ' : ''}${p.name}</div>
+                        <div style="font-size:1.5rem; font-weight:800; color:${i===0 ? 'var(--warning)' : 'var(--text)'}">${score}</div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            finalDiv.innerHTML = html;
+            document.getElementById('gameOverModal').classList.add('active');
+        }
+
+        closeModal() {
+            document.getElementById('gameOverModal').classList.remove('active');
         }
 
         calc(id, dice) {
@@ -638,21 +765,22 @@
                 case 'ls': return /12345|23456/.test(u) ? 40 : 0;
                 case 'yz': return Object.values(counts).includes(5) ? 50 : 0;
                 case 'ch': return sum;
+                case 'yb': return 0;
                 default: return 0;
             }
         }
 
         getHintColor(id, val) {
             const rule = RULES.find(r => r.id === id);
-            if (!rule || !rule.max) return 'hint-text';
+            if (!rule || !rule.max || rule.check) return '';
             const ratio = val / rule.max;
-            if (ratio >= 0.7) return 'hint-good';
-            if (ratio >= 0.4) return 'hint-avg';
-            return 'hint-bad';
+            if (ratio >= 0.7) return 'good';
+            if (val === 0) return 'bad';
+            return 'avg';
         }
 
-        manualNextTurn() { this.turnIdx = (this.turnIdx + 1) % this.players.length; this.render(); this.syncSnap(); }
-        manualPrevTurn() { this.turnIdx = (this.turnIdx - 1 + this.players.length) % this.players.length; this.render(); this.syncSnap(); }
+        manualNextTurn() { this.turnIdx = (this.turnIdx + 1) % this.players.length; this.render(); setTimeout(() => this.syncSnap(), 50); }
+        manualPrevTurn() { this.turnIdx = (this.turnIdx - 1 + this.players.length) % this.players.length; this.render(); setTimeout(() => this.syncSnap(), 50); }
         nextTurn() {
             this.rolls = 0;
             this.clearHolds();
@@ -661,23 +789,22 @@
             document.getElementById('rollStatus').textContent = `ROLL 0 / 3`;
             document.getElementById('rollBtn').disabled = false;
             this.render();
-            this.syncSnap();
+            setTimeout(() => this.syncSnap(), 50);
         }
 
         syncSnap() {
-            const scroll = document.getElementById('scoreScroll');
             const activeCol = document.querySelector('.active-turn-col');
             if (activeCol) {
-                const left = activeCol.offsetLeft - (scroll.clientWidth / 2) + (activeCol.clientWidth / 2);
-                scroll.scrollTo({ left: left, behavior: 'smooth' });
+                // FORCE CENTER ALIGNMENT
+                activeCol.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             }
         }
 
         renamePlayer(idx, name) { this.players[idx].name = name; }
-        addPlayer() { if (this.players.length < 8) { this.players.push({ name: `Player ${this.players.length + 1}`, scores: {} }); this.render(); } }
-        confirmReset() { document.getElementById('confirmTitle').textContent = "Reset Game?"; document.getElementById('confirmText').textContent = "All scores will be lost."; document.getElementById('confirmActionBtn').onclick = () => location.reload(); document.getElementById('confirmModal').classList.add('active'); }
+        addPlayer() { if (this.players.length < 8) { this.players.push({ name: `Player ${this.players.length + 1}`, scores: {}, bonusCount: 0 }); this.render(); setTimeout(() => this.syncSnap(), 50); } }
+        confirmReset() { document.getElementById('confirmTitle').textContent = "New Game?"; document.getElementById('confirmText').textContent = "All scores will be lost."; document.getElementById('confirmActionBtn').onclick = () => location.reload(); document.getElementById('confirmModal').classList.add('active'); }
         confirmRemovePlayer(idx) { document.getElementById('confirmTitle').textContent = `Remove ${this.players[idx].name}?`; document.getElementById('confirmText').textContent = "Their scores will be deleted."; document.getElementById('confirmActionBtn').onclick = () => { this.removePlayer(idx); document.getElementById('confirmModal').classList.remove('active'); }; document.getElementById('confirmModal').classList.add('active'); }
-        removePlayer(idx) { if(this.players.length > 1) { this.players.splice(idx, 1); if(this.turnIdx >= this.players.length) this.turnIdx = this.players.length - 1; this.render(); } }
+        removePlayer(idx) { if(this.players.length > 1) { this.players.splice(idx, 1); if(this.turnIdx >= this.players.length) this.turnIdx = this.players.length - 1; this.render(); setTimeout(() => this.syncSnap(), 50); } }
         dragStart(e, idx) { this.dragSrcIdx = idx; e.dataTransfer.effectAllowed = 'move'; }
         dragDrop(e, idx) {
             if(this.dragSrcIdx === idx) return;
@@ -688,32 +815,70 @@
             else if(this.turnIdx > this.dragSrcIdx && this.turnIdx <= idx) this.turnIdx--;
             else if(this.turnIdx < this.dragSrcIdx && this.turnIdx >= idx) this.turnIdx++;
             this.render();
+            setTimeout(() => this.syncSnap(), 50);
         }
-        undo() { if (this.history.length === 0) return; this.players = JSON.parse(this.history.pop()); this.render(); }
-        toggleFocusMode() { document.body.classList.toggle('scorecard-focused'); const isFocus = document.body.classList.contains('scorecard-focused'); document.getElementById('focusBtn').textContent = isFocus ? '🎮 Game Mode' : '📋 Scorecard Mode'; if(!isFocus) setTimeout(() => this.engine.resize(), 100); this.render(); }
+        undo() { if (this.history.length === 0) return; this.players = JSON.parse(this.history.pop()); this.render(); setTimeout(() => this.syncSnap(), 50); }
+        toggleFocusMode() { document.body.classList.toggle('scorecard-focused'); const isFocus = document.body.classList.contains('scorecard-focused'); document.getElementById('focusBtn').textContent = isFocus ? '🎮 Game Mode' : '📋 Scorecard Mode'; if(!isFocus) setTimeout(() => this.engine.resize(), 100); this.render(); setTimeout(() => this.syncSnap(), 50); }
         toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
 
         render() {
             const isFocus = document.body.classList.contains('scorecard-focused');
             const head = document.getElementById('playerHeaderRow');
-            head.innerHTML = '<th>Category</th>' + this.players.map((p, i) => `<th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}" draggable="true" ondragstart="game.dragStart(event, ${i})" ondragover="event.preventDefault()" ondrop="game.dragDrop(event, ${i})"><span class="remove-btn" onclick="game.confirmRemovePlayer(${i})">✕</span><input class="player-name-input" type="text" value="${p.name}" onfocus="this.select()" oninput="game.renamePlayer(${i}, this.value)"></th>`).join('');
+            
+            // Render Headers
+            head.innerHTML = '<th>Category</th>' + this.players.map((p, i) => {
+                const isActive = i === this.turnIdx;
+                return `
+                <th class="player-header ${isActive ? 'active-turn-col' : ''}" 
+                    draggable="true" ondragstart="game.dragStart(event, ${i})" ondragover="event.preventDefault()" ondrop="game.dragDrop(event, ${i})">
+                    ${isActive ? '<span class="active-badge">Active</span>' : ''}
+                    <span class="remove-btn" onclick="game.confirmRemovePlayer(${i})">✕</span>
+                    <input class="player-name-input" type="text" value="${p.name}" onfocus="this.select()" oninput="game.renamePlayer(${i}, this.value)">
+                </th>`;
+            }).join('');
+
             const body = document.getElementById('scoreTableBody');
             body.innerHTML = '';
+            
+            // Render Rows
             RULES.forEach(r => {
                 const tr = document.createElement('tr');
                 let html = `<td class="tooltip-trigger">${r.name} ${r.tip ? `<span class="info-icon">?</span><div class="tooltip-popover">${r.tip}</div>` : ''}</td>`;
+                
                 this.players.forEach((p, pi) => {
                     const score = p.scores[r.id];
                     const isActive = (pi === this.turnIdx);
                     const cellClass = isActive ? 'active-turn-col' : '';
-                    if (r.calc) { html += `<td class="${cellClass}" style="font-weight: 800; color: var(--primary)">${this.getCalc(pi, r.id)}</td>`; } else {
-                        if (isFocus) { html += `<td class="${cellClass}"><input class="inline-score-input" type="number" value="${score ?? ''}" min="0" max="${r.max || ''}" placeholder="-" onchange="game.score(${pi}, '${r.id}', this.value)"></td>`; } else {
+                    let content = '';
+
+                    if (r.id === 'yb') {
+                         // Yahtzee Bonus: Click to toggle count
+                         let checks = '';
+                         if(p.bonusCount > 0) {
+                             checks = '✓' + (p.bonusCount > 1 ? `x${p.bonusCount}` : '');
+                         }
+                         // Always clickable to toggle count
+                         content = `<div class="cell-wrapper" onclick="game.toggleBonus(${pi})" style="color: var(--accent); font-weight: 800; font-size: 1.1rem; cursor: pointer;">${checks}</div>`;
+                    }
+                    else if (r.calc) { 
+                        content = `<div class="cell-wrapper" style="font-weight: 800; color: var(--primary)">${this.getCalc(pi, r.id)}</div>`; 
+                    } else {
+                        if (isFocus) { 
+                            // Manual Input Mode
+                            content = `<input class="inline-score-input" type="number" value="${score ?? ''}" min="0" max="${r.max || ''}" placeholder="-" onchange="game.score(${pi}, '${r.id}', this.value)">`; 
+                        } else {
+                            // Game Mode
                             const val = this.calc(r.id, this.values);
-                            const hintClass = (isActive && this.rolls > 0 && score === undefined) ? this.getHintColor(r.id, val) : '';
-                            const display = (isActive && this.rolls > 0 && score === undefined) ? `<span class="hint-text ${hintClass}">${val}</span>` : (score ?? '');
-                            html += `<td class="score-cell ${cellClass} ${score !== undefined ? 'locked' : ''}" onclick="game.score(${pi}, '${r.id}')">${display}</td>`;
+                            const hintType = this.getHintColor(r.id, val);
+                            
+                            if (isActive && this.rolls > 0 && score === undefined) {
+                                content = `<div class="cell-wrapper" onclick="game.score(${pi}, '${r.id}')"><span class="score-hint ${hintType}">${val}</span></div>`;
+                            } else {
+                                content = `<div class="cell-wrapper ${score !== undefined ? 'locked' : ''}" onclick="game.score(${pi}, '${r.id}')"><span class="score-val">${score ?? ''}</span></div>`;
+                            }
                         }
                     }
+                    html += `<td class="${cellClass}">${content}</td>`;
                 });
                 tr.innerHTML = html; body.appendChild(tr);
             });
@@ -727,7 +892,8 @@
             if (id === 'uSum') return u;
             if (id === 'bonus') return u >= 63 ? 35 : 0;
             const l = ['3k','4k','fh','ss','ls','yz','ch'].reduce((a,c) => a + (p.scores[c]||0), 0);
-            if (id === 'grand') return u + (u >= 63 ? 35 : 0) + l;
+            const bonusPts = (p.bonusCount || 0) * 100;
+            if (id === 'grand') return u + (u >= 63 ? 35 : 0) + l + bonusPts;
         }
     }
 
