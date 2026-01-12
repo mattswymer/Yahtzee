@@ -355,35 +355,43 @@
 
         init() {
             this.scene = new THREE.Scene();
-            this.camera = new THREE.PerspectiveCamera(40, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
-            this.camera.position.set(0, 13, 0);
-            this.camera.lookAt(0, 0, 0);
+            this.camera = new THREE.PerspectiveCamera(35, this.container.clientWidth / this.container.clientHeight, 0.1, 1000);
+            this.camera.position.set(0, 14, 2); // Slightly angled for better depth
+            this.camera.lookAt(0, 0, -1);
 
             this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
             this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
             this.renderer.shadowMap.enabled = true;
+            this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             this.container.appendChild(this.renderer.domElement);
 
-            this.scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-            const sun = new THREE.DirectionalLight(0xffffff, 0.5);
-            sun.position.set(5, 15, 5);
+            // Lighting
+            this.scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+            const sun = new THREE.DirectionalLight(0xffffff, 0.6);
+            sun.position.set(10, 20, 10);
             sun.castShadow = true;
+            sun.shadow.mapSize.width = 1024;
+            sun.shadow.mapSize.height = 1024;
             this.scene.add(sun);
 
+            // Physics World Tuning
             this.world = new CANNON.World();
-            this.world.gravity.set(0, -13, 0);
+            this.world.gravity.set(0, -28, 0); // Heavier gravity for "earth" feel
 
             const groundMat = new CANNON.Material();
             const diceMat = new CANNON.Material();
-            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { friction: 0.01, restitution: 0.6 }));
+            // Higher friction to prevent sliding
+            this.world.addContactMaterial(new CANNON.ContactMaterial(groundMat, diceMat, { 
+                friction: 0.5, 
+                restitution: 0.2 
+            }));
 
             const floor = new CANNON.Body({ mass: 0, material: groundMat });
             floor.addShape(new CANNON.Plane());
             floor.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI / 2);
             this.world.addBody(floor);
 
-            // BOUNDARIES: Calculated for Camera Y=13, FOV=40
-            // Limits: X +/- 6.5, Z +/- 4.0
+            // Tray Boundaries (X +/- 6.5, Z +/- 4.5)
             const wall = (x, z, axis, angle) => {
                 const b = new CANNON.Body({ mass: 0, material: groundMat });
                 b.addShape(new CANNON.Plane());
@@ -391,28 +399,30 @@
                 b.quaternion.setFromAxisAngle(axis, angle);
                 this.world.addBody(b);
             };
-            const Y = new CANNON.Vec3(0,1,0);
-            wall(0, -4.0, Y, 0);         // Top Z
-            wall(0, 4.0, Y, Math.PI);    // Bottom Z
-            wall(-6.5, 0, Y, Math.PI/2); // Left X
-            wall(6.5, 0, Y, -Math.PI/2); // Right X
+            const Y = new CANNON.Vec3(0, 1, 0);
+            wall(0, -4.5, Y, 0);         
+            wall(0, 4.5, Y, Math.PI);    
+            wall(-7.0, 0, Y, Math.PI / 2); 
+            wall(7.0, 0, Y, -Math.PI / 2); 
 
             this.createDice(diceMat);
             this.animate();
         }
 
         createDice(material) {
-            const geo = new THREE.BoxGeometry(1.3, 1.3, 1.3); // Size tuned
+            const geo = new THREE.BoxGeometry(1.2, 1.2, 1.2); 
             const mats = this.getDiceTextures();
             for(let i=0; i<5; i++) {
                 const mesh = new THREE.Mesh(geo, mats);
                 mesh.castShadow = true;
                 const body = new CANNON.Body({
-                    mass: 1, material: material,
-                    shape: new CANNON.Box(new CANNON.Vec3(0.65, 0.65, 0.65)),
-                    linearDamping: 0.1, angularDamping: 0.1
+                    mass: 1, 
+                    material: material,
+                    shape: new CANNON.Box(new CANNON.Vec3(0.6, 0.6, 0.6)),
+                    linearDamping: 0.15, 
+                    angularDamping: 0.15
                 });
-                body.position.set((i-2)*2, 2, 0);
+                body.position.set((i-2)*2, 1, 0);
                 this.dice.push({mesh, body});
                 this.scene.add(mesh);
                 this.world.addBody(body);
@@ -420,31 +430,53 @@
         }
 
         getDiceTextures() {
+            // Standard Dice Mapping (Right, Left, Top, Bottom, Front, Back)
             return [1,6,2,5,3,4].map(n => {
                 const c = document.createElement('canvas'); c.width=128; c.height=128;
-                const x = c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,128,128);
+                const x = c.getContext('2d'); 
+                // Rounded corner effect
+                x.fillStyle='#ffffff'; x.fillRect(0,0,128,128);
+                x.strokeStyle = '#e2e8f0'; x.lineWidth = 8; x.strokeRect(0,0,128,128);
                 x.fillStyle='#1e293b';
-                const d = (u,v) => { x.beginPath(); x.arc(u,v,13,0,Math.PI*2); x.fill(); };
+                const d = (u,v) => { x.beginPath(); x.arc(u,v,14,0,Math.PI*2); x.fill(); };
                 if(n%2) d(64,64);
-                if(n>1) { d(32,32); d(96,96); }
-                if(n>3) { d(96,32); d(32,96); }
-                if(n==6) { d(32,64); d(96,64); }
-                return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(c) });
+                if(n>1) { d(34,34); d(94,94); }
+                if(n>3) { d(94,34); d(34,94); }
+                if(n==6) { d(34,64); d(94,64); }
+                return new THREE.MeshStandardMaterial({ 
+                    map: new THREE.CanvasTexture(c),
+                    roughness: 0.3,
+                    metalness: 0.1
+                });
             });
         }
 
         roll(held) {
             this.isRolling = true;
             this.dice.forEach((d, i) => {
-                if(held.includes(i)) return;
-                d.body.position.set(Math.random()*8 - 4, 8 + i, Math.random()*4 - 2); // Tight spawn
-                d.body.velocity.set(Math.random()*10-5, 5, Math.random()*10-5);
-                d.body.angularVelocity.set(Math.random()*20, Math.random()*20, Math.random()*20);
+                if (held.includes(i)) {
+                    // Lock held dice physically
+                    d.body.type = CANNON.Body.STATIC; 
+                    // Move to "3D Rack" at the top of the tray
+                    d.body.position.set((i - 2) * 1.8, 0.6, -3.5); 
+                    d.body.velocity.set(0, 0, 0);
+                    d.body.angularVelocity.set(0, 0, 0);
+                } else {
+                    // Reset rolling dice to Dynamic
+                    d.body.type = CANNON.Body.DYNAMIC;
+                    d.body.position.set(Math.random() * 6 - 3, 7 + i, Math.random() * 2);
+                    d.body.velocity.set(Math.random() * 12 - 6, 4, Math.random() * 12 - 6);
+                    d.body.angularVelocity.set(Math.random() * 25, Math.random() * 25, Math.random() * 25);
+                }
             });
         }
 
         getValues() {
-            const vectors = [{v:1, d:new THREE.Vector3(1,0,0)}, {v:6, d:new THREE.Vector3(-1,0,0)}, {v:2, d:new THREE.Vector3(0,1,0)}, {v:5, d:new THREE.Vector3(0,-1,0)}, {v:3, d:new THREE.Vector3(0,0,1)}, {v:4, d:new THREE.Vector3(0,0,-1)}];
+            const vectors = [
+                {v:1, d:new THREE.Vector3(1,0,0)}, {v:6, d:new THREE.Vector3(-1,0,0)}, 
+                {v:2, d:new THREE.Vector3(0,1,0)}, {v:5, d:new THREE.Vector3(0,-1,0)}, 
+                {v:3, d:new THREE.Vector3(0,0,1)}, {v:4, d:new THREE.Vector3(0,0,-1)}
+            ];
             return this.dice.map(d => {
                 let max = -1, val = 1;
                 vectors.forEach(u => {
@@ -462,8 +494,10 @@
             this.dice.forEach(d => {
                 d.mesh.position.copy(d.body.position);
                 d.mesh.quaternion.copy(d.body.quaternion);
-                if(d.body.velocity.length() > 0.05) moving = true;
+                // Check if any dynamic die is still moving
+                if(d.body.type === CANNON.Body.DYNAMIC && d.body.velocity.length() > 0.1) moving = true;
             });
+            
             if(this.isRolling && !moving) {
                 this.isRolling = false;
                 this.onSettle(this.getValues());
@@ -533,8 +567,14 @@
         }
 
         onSettle(vals) {
-            this.values = vals;
-            vals.forEach((v, i) => document.getElementById(`dv-${i}`).textContent = v);
+            // Data Integrity: Only update non-held values
+            vals.forEach((v, i) => {
+                if (!this.held.includes(i)) {
+                    this.values[i] = v;
+                }
+                document.getElementById(`dv-${i}`).textContent = this.values[i];
+            });
+            
             document.getElementById('rollBtn').disabled = (this.rolls >= 3);
             this.render();
         }
@@ -567,7 +607,6 @@
                     const rule = RULES.find(r => r.id === catId);
                     if(val < 0) val = 0;
                     if(rule.max && val > rule.max) val = rule.max;
-                    if(rule.fixed) val = (Math.abs(val - rule.max) < Math.abs(val - 0)) ? rule.max : 0;
                     this.players[pIdx].scores[catId] = val;
                 }
                 this.render();
@@ -674,22 +713,15 @@
             }
         }
 
-        // Drag and Drop Logic
-        dragStart(e, idx) {
-            this.dragSrcIdx = idx;
-            e.dataTransfer.effectAllowed = 'move';
-        }
+        dragStart(e, idx) { this.dragSrcIdx = idx; e.dataTransfer.effectAllowed = 'move'; }
         dragDrop(e, idx) {
             if(this.dragSrcIdx === idx) return;
             const item = this.players[this.dragSrcIdx];
             this.players.splice(this.dragSrcIdx, 1);
             this.players.splice(idx, 0, item);
-
-            // Adjust turn index if needed
             if(this.turnIdx === this.dragSrcIdx) this.turnIdx = idx;
             else if(this.turnIdx > this.dragSrcIdx && this.turnIdx <= idx) this.turnIdx--;
             else if(this.turnIdx < this.dragSrcIdx && this.turnIdx >= idx) this.turnIdx++;
-
             this.render();
         }
 
@@ -711,19 +743,14 @@
 
         render() {
             const isFocus = document.body.classList.contains('scorecard-focused');
-
-            // Header with Drag & Delete
             const head = document.getElementById('playerHeaderRow');
             head.innerHTML = '<th>Category</th>' + this.players.map((p, i) =>
                 `<th class="player-header ${i === this.turnIdx ? 'active-turn-col' : ''}"
-                     draggable="true"
-                     ondragstart="game.dragStart(event, ${i})"
-                     ondragover="event.preventDefault()"
-                     ondrop="game.dragDrop(event, ${i})">
+                     draggable="true" ondragstart="game.dragStart(event, ${i})"
+                     ondragover="event.preventDefault()" ondrop="game.dragDrop(event, ${i})">
                     <span class="remove-btn" onclick="game.confirmRemovePlayer(${i})">✕</span>
                     <input class="player-name-input" type="text" value="${p.name}"
-                           onfocus="this.select()"
-                           oninput="game.renamePlayer(${i}, this.value)">
+                           onfocus="this.select()" oninput="game.renamePlayer(${i}, this.value)">
                 </th>`
             ).join('');
 
@@ -740,8 +767,7 @@
                     const isActive = (pi === this.turnIdx);
                     const cellClass = isActive ? 'active-turn-col' : '';
                     if (r.calc) {
-                        const val = this.getCalc(pi, r.id);
-                        html += `<td class="${cellClass}" style="font-weight: 800; color: var(--primary)">${val}</td>`;
+                        html += `<td class="${cellClass}" style="font-weight: 800; color: var(--primary)">${this.getCalc(pi, r.id)}</td>`;
                     } else {
                         if (isFocus) {
                             html += `<td class="${cellClass}">
