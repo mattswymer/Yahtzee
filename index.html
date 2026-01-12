@@ -640,9 +640,20 @@
 
         // Handle Clicking the Yahtzee Bonus Box
         toggleBonus(pIdx) {
+            if (pIdx !== this.turnIdx) return;
+            const isYahtzee = new Set(this.values).size === 1;
+            if (!isYahtzee) {
+                alert("Invalid Bonus: Dice must show a Yahtzee.");
+                return;
+            }
             const p = this.players[pIdx];
+            if (p.scores['yz'] !== 50) {
+                alert("Invalid Bonus: You must have a scored Yahtzee (50) first.");
+                return;
+            }
+
             p.bonusCount = (p.bonusCount || 0) + 1;
-            if (p.bonusCount > 13) p.bonusCount = 0; // Cycle back to 0
+            if (p.bonusCount > 13) p.bonusCount = 13; 
             this.render();
         }
 
@@ -671,6 +682,15 @@
 
             // Game Mode Logic
             if (pIdx !== this.turnIdx || this.rolls === 0 || this.players[pIdx].scores[catId] !== undefined) return;
+
+            // SAVE HISTORY
+            this.history.push(JSON.stringify({
+                players: this.players,
+                turnIdx: this.turnIdx,
+                rolls: this.rolls,
+                values: [...this.values],
+                held: [...this.held]
+            }));
             
             const p = this.players[pIdx];
             const isYahtzee = new Set(this.values).size === 1;
@@ -686,6 +706,7 @@
                 if (isUpperOpen) {
                     if (catId !== upperKey) {
                         alert(`Joker Rule: You must fill the ${upperKey} box!`);
+                        this.history.pop();
                         return;
                     }
                 } else {
@@ -707,7 +728,6 @@
         }
 
         finishTurn() {
-            this.history.push(JSON.stringify(this.players));
             if(this.checkGameOver()) {
                 this.render();
                 this.showGameOver();
@@ -817,7 +837,36 @@
             this.render();
             setTimeout(() => this.syncSnap(), 50);
         }
-        undo() { if (this.history.length === 0) return; this.players = JSON.parse(this.history.pop()); this.render(); setTimeout(() => this.syncSnap(), 50); }
+        
+        undo() {
+            if (this.history.length === 0) return;
+            
+            const state = JSON.parse(this.history.pop());
+            this.players = state.players;
+            this.turnIdx = state.turnIdx;
+            this.rolls = state.rolls;
+            this.values = state.values;
+            this.held = state.held;
+            
+            document.getElementById('rollStatus').textContent = `ROLL ${this.rolls} / 3`;
+            document.getElementById('rollBtn').disabled = (this.rolls >= 3);
+            
+            this.values.forEach((v, i) => {
+                 document.getElementById(`dv-${i}`).textContent = v;
+                 this.engine.setHeldStatus(i, this.held.includes(i), v);
+            });
+            
+            for(let i=0; i<5; i++) {
+                 const slot = document.getElementById(`slot-${i}`);
+                 const isHeld = this.held.includes(i);
+                 slot.classList.toggle('held', isHeld);
+                 document.getElementById(`dl-${i}`).textContent = isHeld ? 'KEEPER' : 'KEEP';
+            }
+
+            this.render();
+            setTimeout(() => this.syncSnap(), 50);
+        }
+
         toggleFocusMode() { document.body.classList.toggle('scorecard-focused'); const isFocus = document.body.classList.contains('scorecard-focused'); document.getElementById('focusBtn').textContent = isFocus ? '🎮 Game Mode' : '📋 Scorecard Mode'; if(!isFocus) setTimeout(() => this.engine.resize(), 100); this.render(); setTimeout(() => this.syncSnap(), 50); }
         toggleTheme() { document.body.dataset.theme = document.body.dataset.theme === 'dark' ? 'light' : 'dark'; }
 
